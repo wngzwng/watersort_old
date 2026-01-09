@@ -1,0 +1,115 @@
+### 通用 ###
+# 忽略系统文件
+.DS_Store
+Thumbs.db
+
+# Rider / IntelliJ / VSCode / Visual Studio 配置
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider 临时文件
+/shelf/
+/workspace.xml
+/contentModel.xml
+/modules.xml
+/projectSettingsUpdater.xml
+/.idea.CrossMath.iml
+
+# 数据源与 HTTP 客户端配置
+/httpRequests/
+/dataSources/
+/dataSources.local.xml
+
+# 构建输出目录
+bin/
+obj/
+out/
+[Bb]uild/
+[Ll]ogs/
+[Tt]est[Rr]esults/
+
+# 临时缓存和打包文件
+*.tmp
+*.log
+*.vspscc
+*.vssscc
+*.bak
+*.ncb
+*.sdf
+*.cache
+*.dbmdl
+*.db
+*.mdf
+*.ldf
+*.pdb
+*.pidb
+*.svclog
+*.scc
+*.opendb
+*.ide
+*.tlog
+
+# 单元测试与 BenchmarkDotNet 输出
+BenchmarkDotNet.Artifacts/
+BenchmarkDotNet/
+*.BenchmarkDotNet.Artifacts/
+TestResults/
+*.trx
+
+# NuGet 与依赖缓存
+*.nupkg
+*.snupkg
+*.nuspec
+packages/
+.nuget/
+project.lock.json
+*.deps.json
+
+# DLL / 可执行文件
+*.dll
+*.exe
+*.apphost
+*.pdb
+*.so
+*.dylib
+*.a
+
+# 发布与中间产物
+publish/
+wwwroot/dist/
+dist/
+bundle/
+coverage/
+coverage*.json
+coverage*.xml
+coverage*.html
+
+# JetBrains / Resharper / Rider 特定
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+.idea/
+
+# Visual Studio 特定
+.vs/
+*.dbmdl
+*.vspx
+*.vsmdi
+
+# 临时文件
+*.bak
+*.tmp
+*.swp
+*.orig
+
+# 用户自定义忽略规则（根据需要添加）
+# /CrossMath.Core.Tests/bin/
+# /CrossMath.Core.Tests/obj/
+
+*.xls
+*.csv
+*.xlsx

@@ -1,0 +1,369 @@
+﻿using System.Diagnostics;
+using WaterSort.Core;
+using WaterSort.Core.CommonSolver;
+using WaterSort.Core.WaterSortSolver.Solver;
+
+class Program
+{
+    static void Main()
+    {
+        // Run("Case1_SimpleSolvable", TestCase1);
+        // Run("Case2_SimpleUnsolvable", TestCase2);
+        // Run("Case3_EdgeCases", TestCase3);
+        // Run("Case4_ComplexSolvable", TestCase4);
+        // Run("Case5_LargeCapacity", TestCase5);
+        //
+        // Console.WriteLine("\nAll tests completed.");
+        
+        TestSolver();
+        // TestCommonSolver();
+    }
+
+    static void TestCommonSolver()
+    {
+        string input = "/Users/admin/Desktop/watorsort_level/test_level.csv";
+        string output = "/Users/admin/Desktop/watorsort_level/test_level_elapse.csv";
+        var test = new CommonSolverSpeedTest();
+        var solver = SolverFactory.CreateDefault();
+        test.Run(input, output, solver);
+    }
+    static void TestSolver()
+    { 
+        // List<List<int>> bottles =
+        // [
+        //     [1, 1, 2, 2],
+        //     [3, 3, 4, 4],
+        //     [2, 2, 3, 3],
+        //     [4, 4, 1, 1],
+        //     [],
+        //     []
+        // ];
+        
+        // List<List<int>> bottles =  
+        // [
+        //     [6, 2, 5, 1],
+        //     [4, 5, 4, 1],
+        //     [5, 6, 4, 2],
+        //     [3, 6, 2, 3],
+        //     [1, 2, 4, 1],
+        //     [3, 5, 3, 6],
+        //     [],
+        //     []
+        // ];
+        
+        
+        
+        // List<List<int>> bottles =
+        // [
+        //     [1, 5, 1, 5, 7, 4, 4, 2],
+        //     [4, 6, 2, 3, 5, 2, 6, 1],
+        //     [5, 7, 2, 6, 3, 4, 1, 2],
+        //     [5, 2, 3, 7, 3, 6, 3, 1],
+        //     [1, 1, 6, 6, 4, 2, 5, 7],
+        //     [3, 3, 5, 7, 2, 4, 4, 5],
+        //     [1, 7, 6, 6, 3, 7, 4, 7],
+        //     // [],
+        //     // []
+        // ];
+
+        // List<List<int>> bottles =
+        // [
+        //     [8, 2, 11, 5],
+        //     [2, 10, 4, 2],
+        //     [7, 3, 1, 5],
+        //     [4, 11, 7, 13],
+        //     [6, 13, 1, 3],
+        //     [6, 4, 10, 7],
+        //     [8, 11, 1, 9],
+        //     [12, 7, 4, 2],
+        //     [12, 6, 9, 5],
+        //     [12, 3, 11, 1],
+        //     [8, 9, 8, 6],
+        //     [13, 9, 12, 5],
+        //     [10, 3, 13, 10],
+        //     // [],
+        //     // []
+        // ];
+        //
+        List<List<int>> bottles =
+        [
+            [1, 1, 2, 2],
+            [1, 1],
+            [3, 3, 2],
+            [3, 3, 2]
+        ];
+        
+        var tubes = bottles
+            .Select(bottle => Tube.CreateNormalTube(4, bottle))
+            .ToList();
+
+        // List<int> emptyInfo = [3, 3, 1];
+        List<int> emptyInfo = [0];
+        List<Tube> emptyTubes = emptyInfo.Select(capatity => Tube.CreateEmptyTube(capatity)).ToList();
+        
+        tubes.AddRange(emptyTubes);
+
+        // --------------------
+        // 0. 构造 state / solver
+        // --------------------
+        var solver = SolverFactory.CreateDefault();
+        var state = new State(tubes);
+
+        // --------------------
+        // 1. warm-up + 正确性
+        // --------------------
+        bool solved = TrySolveOnce(solver, state, out var solution);
+
+        Console.WriteLine($"Solved: {solved}");
+        Console.WriteLine($"StepCount: {solution?.Count ?? 0}");
+
+        // 可选：只在这里打印解
+        if (solution != null)
+        {
+            Console.WriteLine("---- solution ----");
+            foreach (var m in solution)
+                Console.WriteLine($"({m.From},{m.To}):  {m.Count}");
+        }
+
+        // --------------------
+        // 2. 性能测试（纯计时）
+        // --------------------
+        double medianMs = MeasureSolveTimeMs(
+            solver,
+            state,
+            repeat: 7
+        );
+
+        Console.WriteLine($"Solver median time: {medianMs:F3} ms");
+        
+        
+        
+        static bool TrySolveOnce(
+            Solver solver,
+            State state,
+            out IReadOnlyList<Move>? solution,
+            bool stepByStep = false
+        )
+        {
+            solution = null;
+
+            foreach (var moves in solver.SolveDfsStack(state, stepByStep))
+            {
+                // 这里才 materialize，一次就好
+                solution = moves.ToList();
+                return true;
+            }
+
+            return false;
+        }
+        
+        static double MeasureSolveTimeMs(
+            Solver solver,
+            State state,
+            int repeat
+        )
+        {
+            var times = new List<double>(repeat);
+
+            for (int i = 0; i < repeat; i++)
+            {
+                var sw = Stopwatch.StartNew();
+
+                foreach (var _ in solver.SolveDfsStack(state))
+                {
+                    break; // 只要第一条解
+                }
+
+                sw.Stop();
+                times.Add(sw.Elapsed.TotalMilliseconds);
+            }
+
+            times.Sort();
+            return times[times.Count / 2]; // 中位数
+        }
+    }
+
+    static void Run(string name, Action test)
+    {
+        Console.WriteLine($"\n=== {name} ===");
+        test();
+    }
+
+    // =========================
+    // Test Cases
+    // =========================
+
+    static void TestCase1()
+    {
+        List<List<int>> bottles =
+        [
+            [1, 1, 2, 2],
+            [3, 3, 4, 4],
+            [2, 2, 3, 3],
+            [4, 4, 1, 1],
+            [],
+            []
+        ];
+
+        var solver = new WaterSortSolver();
+        var solutions = solver.Solve(bottles, extraEmptyBottleCount: 0).ToList();
+
+        TestHelpers.ExpectHasSolution(solutions, "Simple solvable");
+        TestHelpers.PrintFirstSolution(solutions);
+    }
+
+    static void TestCase2()
+    {
+        List<List<int>> bottles =  
+        [
+            [1, 2, 3, 4],
+            [1, 2, 3, 4],
+            [5, 6, 5, 6],
+            [5, 6, 5, 6],
+            [],
+            []
+        ];
+
+        var solver = new WaterSortSolver();
+        var solutions = solver.Solve(bottles, extraEmptyBottleCount: 0);
+
+        TestHelpers.ExpectNoSolution(solutions, "Simple unsolvable");
+    }
+
+    static void TestCase3()
+    {
+        var solver = new WaterSortSolver();
+
+        // 3.1 空瓶
+        List<List<int>> empty = 
+        [
+            [],
+            [],
+            []
+        ];
+
+        var sol1 = solver.Solve(empty, extraEmptyBottleCount: 0);
+        TestHelpers.ExpectSolvedInitially(sol1, "All empty bottles");
+
+        // 3.2 已解决
+        List<List<int>> solved = 
+        [
+            [1, 1, 1, 1],
+            [2, 2, 2, 2],
+            [3, 3, 3, 3]
+        ];
+
+        var sol2 = solver.Solve(solved, extraEmptyBottleCount: 0);
+        TestHelpers.ExpectSolvedInitially(sol2, "Already solved");
+    }
+
+    static void TestCase4()
+    {
+        List<List<int>> bottles =  
+        [
+            [6, 2, 5, 1],
+            [4, 5, 4, 1],
+            [5, 6, 4, 2],
+            [3, 6, 2, 3],
+            [1, 2, 4, 1],
+            [3, 5, 3, 6],
+            [],
+            []
+        ];
+
+        var solver = new WaterSortSolver();
+        var solutions = solver.Solve(bottles, extraEmptyBottleCount: 0).ToList();
+
+        TestHelpers.ExpectHasSolution(solutions, "Complex solvable");
+        TestHelpers.PrintFirstSolution(solutions);
+    }
+
+    static void TestCase5()
+    {
+        List<List<int>> bottles =
+        [
+            [1, 5, 1, 5, 7, 4, 4, 2],
+            [4, 6, 2, 3, 5, 2, 6, 1],
+            [5, 7, 2, 6, 3, 4, 1, 2],
+            [5, 2, 3, 7, 3, 6, 3, 1],
+            [1, 1, 6, 6, 4, 2, 5, 7],
+            [3, 3, 5, 7, 2, 4, 4, 5],
+            [1, 7, 6, 6, 3, 7, 4, 7],
+            [],
+            []
+        ];
+
+
+
+        var solver = new WaterSortSolver();
+        var solutions = solver.Solve(
+            bottles,
+            extraEmptyBottleCount: 0,
+            bottleCapacity: 8,
+            emptyBottleCapacity: 8
+        ).ToList();
+
+        TestHelpers.ExpectHasSolution(solutions, "Large capacity bottles");
+        TestHelpers.PrintFirstSolution(solutions);
+    }
+}
+
+/*
+(0, 7), 1
+(0, 8), 2
+(2, 7), 1
+(1, 2), 1
+(4, 0), 1
+(5, 4), 1
+(5, 8), 2
+(7, 5), 2
+(0, 7), 2
+(4, 0), 2
+(4, 5), 1
+(6, 7), 1
+(8, 4), 3
+(8, 6), 1
+(0, 8), 3
+(2, 0), 2
+(3, 0), 1
+(6, 2), 2
+(6, 7), 1
+(3, 6), 1
+(3, 1), 1
+(3, 6), 1
+(7, 3), 4
+(0, 7), 4
+(8, 0), 3
+(0, 8), 4
+(0, 7), 1
+(2, 0), 3
+(2, 6), 1
+(1, 2), 2
+(4, 0), 4
+(4, 2), 2
+(4, 7), 2
+(2, 4), 5
+(1, 2), 1
+(1, 8), 1
+(5, 2), 4
+(6, 1), 4
+(6, 4), 2
+(3, 5), 4
+(3, 6), 1
+(1, 3), 5
+(5, 6), 5
+(8, 5), 5
+(1, 8), 1
+(1, 4), 1
+(1, 0), 1
+(2, 1), 6
+(8, 1), 1
+(2, 8), 1
+(5, 2), 6
+(3, 5), 6
+(3, 1), 1
+(3, 2), 1
+(6, 3), 7
+(8, 3), 1
+(6, 7), 1
+*/
