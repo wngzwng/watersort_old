@@ -9,6 +9,9 @@ public sealed class Solver
     private readonly IMoveGroupExplorer _explorer;
     private readonly IStateNormalizer _normalizer2;
 
+    private int _nodeCount = 0;
+    public int NodeCount => _nodeCount;
+
     public Solver(
         IMoveGroupExplorer explorer,
         IStateNormalizer normalizer2,
@@ -80,6 +83,7 @@ public sealed class Solver
 
     public IEnumerable<IReadOnlyList<Move>> SolveDfsStack(State start, bool stepByStep = false)
     {
+        _nodeCount = 0;
         var visited = new HashSet<StateKey>();
         var path = new List<MoveGroup>();
 
@@ -120,6 +124,7 @@ public sealed class Solver
         ));
 
         var curDepth = 0;
+        _nodeCount += 1;
 
         // ─────────────────────────
         // DFS 主循环
@@ -244,6 +249,7 @@ public sealed class Solver
                 depth: ++curDepth,
                 incoming: nextGroup
             ));
+            _nodeCount += 1;
 
             if (stepByStep)
             {

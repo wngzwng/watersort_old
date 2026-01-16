@@ -53,18 +53,18 @@ class Program
         
         
         
-        // List<List<int>> bottles =
-        // [
-        //     [1, 5, 1, 5, 7, 4, 4, 2],
-        //     [4, 6, 2, 3, 5, 2, 6, 1],
-        //     [5, 7, 2, 6, 3, 4, 1, 2],
-        //     [5, 2, 3, 7, 3, 6, 3, 1],
-        //     [1, 1, 6, 6, 4, 2, 5, 7],
-        //     [3, 3, 5, 7, 2, 4, 4, 5],
-        //     [1, 7, 6, 6, 3, 7, 4, 7],
-        //     // [],
-        //     // []
-        // ];
+        List<List<int>> bottles =
+        [
+            [1, 5, 1, 5, 7, 4, 4, 2],
+            [4, 6, 2, 3, 5, 2, 6, 1],
+            [5, 7, 2, 6, 3, 4, 1, 2],
+            [5, 2, 3, 7, 3, 6, 3, 1],
+            [1, 1, 6, 6, 4, 2, 5, 7],
+            [3, 3, 5, 7, 2, 4, 4, 5],
+            [1, 7, 6, 6, 3, 7, 4, 7],
+            // [],
+            // []
+        ];
 
         // List<List<int>> bottles =
         // [
@@ -85,20 +85,20 @@ class Program
         //     // []
         // ];
         //
-        List<List<int>> bottles =
-        [
-            [1, 1, 2, 2],
-            [1, 1],
-            [3, 3, 2],
-            [3, 3, 2]
-        ];
+        // List<List<int>> bottles =
+        // [
+        //     [1, 1, 2, 2],
+        //     [1, 1],
+        //     [3, 3, 2],
+        //     [3, 3, 2]
+        // ];
         
         var tubes = bottles
-            .Select(bottle => Tube.CreateNormalTube(4, bottle))
+            .Select(bottle => Tube.CreateNormalTube(8, bottle))
             .ToList();
 
-        // List<int> emptyInfo = [3, 3, 1];
-        List<int> emptyInfo = [0];
+        List<int> emptyInfo = [6, 6];
+        // List<int> emptyInfo = [0];
         List<Tube> emptyTubes = emptyInfo.Select(capatity => Tube.CreateEmptyTube(capatity)).ToList();
         
         tubes.AddRange(emptyTubes);
@@ -115,6 +115,8 @@ class Program
         bool solved = TrySolveOnce(solver, state, out var solution);
 
         Console.WriteLine($"Solved: {solved}");
+        if  (solver.NodeCount > 0)
+            Console.WriteLine($"CurVisitNodeCount: {solver.NodeCount}");
         Console.WriteLine($"StepCount: {solution?.Count ?? 0}");
 
         // 可选：只在这里打印解
@@ -134,7 +136,7 @@ class Program
             repeat: 7
         );
 
-        Console.WriteLine($"Solver median time: {medianMs:F3} ms");
+        Console.WriteLine($"Solvers median time: {medianMs:F3} ms");
         
         
         

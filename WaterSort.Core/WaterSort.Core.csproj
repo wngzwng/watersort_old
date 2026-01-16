@@ -11,4 +11,10 @@
     <PackageReference Include="CsvHelper" Version="33.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="ObstacleSolver\Apply\" />
+    <Folder Include="ObstacleSolver\Explore\" />
+    <Folder Include="ObstacleSolver\StateHasher\" />
+  </ItemGroup>
+
 </Project>
