@@ -37,19 +37,55 @@ class Program
 
     static void TestDemoSolver()
     {
-        List<List<int>> bottles =
-        [
-            [1, 1, 2, 2],
-            [3, 3, 4, 4],
-            [2, 2, 3, 3],
-            [4, 4, 1, 1],
-        ];
+        // // 长试管
+        // List<List<int>> bottles =
+        // [
+        //     [1, 5, 1, 5, 7, 4, 4, 2],
+        //     [4, 6, 2, 3, 5, 2, 6, 1],
+        //     [5, 7, 2, 6, 3, 4, 1, 2],
+        //     [5, 2, 3, 7, 3, 6, 3, 1],
+        //     [1, 1, 6, 6, 4, 2, 5, 7],
+        //     [3, 3, 5, 7, 2, 4, 4, 5],
+        //     [1, 7, 6, 6, 3, 7, 4, 7],
+        // ];
+        // var bottleCapacity = 8;
+        // List<int> extraEmptyConfig = [8, 8];
+        
+        // List<List<int>> bottles =
+        // [
+        //     [1, 1, 2, 2],
+        //     [3, 3, 4, 4],
+        //     [2, 2, 3, 3],
+        //     [4, 4, 1, 1],
+        // ];
+        // var bottleCapacity = 4;
+        // List<int> extraEmptyConfig = [1, 1, 1];
 
-        List<int> extraEmptyConfig = [4, 4];
-        if (Demo.Test(bottles, 4, out var solutionMoves, extraEmptyConfig, true))
+        // List<List<int>> bottles =
+        // [
+        //     [1, 1, 1, 1],
+        //     [2],
+        //     [2, 2, 2],
+        // ];
+        // var bottleCapacities = [4, 4, 3];
+        
+        List<List<int>> bottles =  
+        [
+            [6, 2, 5, 1],
+            [4, 5, 4, 1],
+            [5, 6, 4, 2],
+            [3, 6, 2, 3],
+            [1, 2, 4, 1],
+            [3, 5, 3, 6],
+        ];
+        var bottleCapacity = 4;
+        List<int> extraEmptyConfig = [4, 3];
+        
+        if (Demo.Test(bottles, bottleCapacity, out var solutionMoves, extraEmptyConfig))
+        // if (Demo.Test(bottles, bottleCapacities, out var solutionMoves))
         {
-            Console.WriteLine($"有解, {solutionMoves.Count}步");
             Console.WriteLine(string.Join(",\n", solutionMoves));
+            Console.WriteLine($"有解, {solutionMoves.Count}步");
             return;
         }
         Console.WriteLine($"无解");
@@ -81,18 +117,18 @@ class Program
         
         
         
-        List<List<int>> bottles =
-        [
-            [1, 5, 1, 5, 7, 4, 4, 2],
-            [4, 6, 2, 3, 5, 2, 6, 1],
-            [5, 7, 2, 6, 3, 4, 1, 2],
-            [5, 2, 3, 7, 3, 6, 3, 1],
-            [1, 1, 6, 6, 4, 2, 5, 7],
-            [3, 3, 5, 7, 2, 4, 4, 5],
-            [1, 7, 6, 6, 3, 7, 4, 7],
-            // [],
-            // []
-        ];
+        // List<List<int>> bottles =
+        // [
+        //     [1, 5, 1, 5, 7, 4, 4, 2],
+        //     [4, 6, 2, 3, 5, 2, 6, 1],
+        //     [5, 7, 2, 6, 3, 4, 1, 2],
+        //     [5, 2, 3, 7, 3, 6, 3, 1],
+        //     [1, 1, 6, 6, 4, 2, 5, 7],
+        //     [3, 3, 5, 7, 2, 4, 4, 5],
+        //     [1, 7, 6, 6, 3, 7, 4, 7],
+        //     // [],
+        //     // []
+        // ];
 
         // List<List<int>> bottles =
         // [
@@ -121,13 +157,26 @@ class Program
         //     [3, 3, 2]
         // ];
         
+        List<List<int>> bottles =  
+        [
+            [6, 2, 5, 1],
+            [4, 5, 4, 1],
+            [5, 6, 4, 2],
+            [3, 6, 2, 3],
+            [1, 2, 4, 1],
+            [3, 5, 3, 6],
+        ];
+        var bottleCapacity = 4;
+        List<int> extraEmptyConfig = [4, 3];
+
+        
         var tubes = bottles
-            .Select(bottle => Tube.CreateNormalTube(8, bottle))
+            .Select(bottle => Tube.CreateNormalTube(bottleCapacity, bottle))
             .ToList();
 
-        List<int> emptyInfo = [6, 6];
+        // List<int> emptyInfo = [6, 6];
         // List<int> emptyInfo = [0];
-        List<Tube> emptyTubes = emptyInfo.Select(capatity => Tube.CreateEmptyTube(capatity)).ToList();
+        List<Tube> emptyTubes = extraEmptyConfig.Select(capatity => Tube.CreateEmptyTube(capatity)).ToList();
         
         tubes.AddRange(emptyTubes);
 
@@ -396,4 +445,85 @@ class Program
 (6, 3), 7
 (8, 3), 1
 (6, 7), 1
+
+
+Move { From = 0, To = 6, Color = 1, Count = 1 },
+   Move { From = 0, To = 7, Color = 5, Count = 1 },
+   Move { From = 2, To = 0, Color = 2, Count = 1 },
+   Move { From = 1, To = 6, Color = 1, Count = 1 },
+   Move { From = 1, To = 2, Color = 4, Count = 1 },
+   Move { From = 1, To = 7, Color = 5, Count = 1 },
+   Move { From = 2, To = 1, Color = 4, Count = 2 },
+   Move { From = 5, To = 2, Color = 6, Count = 1 },
+   Move { From = 3, To = 5, Color = 3, Count = 1 },
+   Move { From = 3, To = 0, Color = 2, Count = 1 },
+   Move { From = 2, To = 3, Color = 6, Count = 2 },
+   Move { From = 2, To = 7, Color = 5, Count = 1 },
+   Move { From = 0, To = 2, Color = 2, Count = 3 },
+   Move { From = 3, To = 0, Color = 6, Count = 3 },
+   Move { From = 5, To = 3, Color = 3, Count = 2 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 4, To = 1, Color = 4, Count = 1 },
+   Move { From = 4, To = 2, Color = 2, Count = 1 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 5, To = 4, Color = 5, Count = 1 },
+   Move { From = 5, To = 3, Color = 3, Count = 1 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 4, To = 1, Color = 4, Count = 1 },
+   Move { From = 4, To = 2, Color = 2, Count = 1 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 4, To = 1, Color = 4, Count = 1 },
+   Move { From = 4, To = 2, Color = 2, Count = 1 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 3, To = 2, Color = 6, Count = 3 },
+   Move { From = 5, To = 3, Color = 3, Count = 2 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 4, To = 1, Color = 4, Count = 1 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 4, To = 1, Color = 4, Count = 1 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 4, To = 1, Color = 4, Count = 1 },
+   Move { From = 4, To = 2, Color = 2, Count = 1 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 5, To = 4, Color = 3, Count = 2 },
+   Move { From = 5, To = 2, Color = 3, Count = 2 },
+   Move { From = 5, To = 2, Color = 3, Count = 2 },
+   Move { From = 5, To = 2, Color = 3, Count = 2 },
+   Move { From = 3, To = 2, Color = 6, Count = 1 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 4, To = 1, Color = 4, Count = 1 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 4, To = 1, Color = 4, Count = 1 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 4, To = 1, Color = 4, Count = 1 },
+   Move { From = 0, To = 3, Color = 2, Count = 1 },
+   Move { From = 0, To = 4, Color = 2, Count = 1 },
+   Move { From = 2, To = 0, Color = 6, Count = 2 },
+   Move { From = 2, To = 7, Color = 5, Count = 1 },
+   Move { From = 4, To = 2, Color = 2, Count = 2 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 5, To = 2, Color = 3, Count = 2 },
+   Move { From = 0, To = 2, Color = 6, Count = 1 },
+   Move { From = 3, To = 4, Color = 2, Count = 1 },
+   Move { From = 3, To = 0, Color = 2, Count = 1 },
+   Move { From = 4, To = 0, Color = 2, Count = 2 },
+   Move { From = 4, To = 6, Color = 1, Count = 1 },
+   Move { From = 5, To = 4, Color = 3, Count = 2 },
+   Move { From = 5, To = 7, Color = 5, Count = 1 },
+   Move { From = 5, To = 4, Color = 3, Count = 1 },
+   Move { From = 3, To = 0, Color = 2, Count = 2 },
+   Move { From = 2, To = 3, Color = 6, Count = 2 },
+   Move { From = 2, To = 5, Color = 6, Count = 1 },
+   Move { From = 2, To = 5, Color = 6, Count = 3 },
+   Move { From = 7, To = 5, Color = 5, Count = 2 },
+   Move { From = 3, To = 0, Color = 2, Count = 2 },
+   Move { From = 2, To = 3, Color = 6, Count = 2 },
+   Move { From = 2, To = 7, Color = 6, Count = 1 },
+   Move { From = 5, To = 2, Color = 5, Count = 3 },
+   Move { From = 5, To = 4, Color = 3, Count = 1 },
+   Move { From = 3, To = 5, Color = 6, Count = 3 },
+   Move { From = 3, To = 4, Color = 3, Count = 1 },
+   Move { From = 7, To = 5, Color = 6, Count = 1 }
+   
 */

@@ -360,8 +360,9 @@ public class MoveGroupExplorer
             yield return moveGroup; 
         }
         
-        // ========== 4) mono -> mono ==========  不同类型的转换
-        var monoGroupsMap = GroupMonoByType(toMonos, state);
+        // ========== 4) mono -> mono ==========  不同类型的转换 这里不能是tomonos，而是这个颜色桶的所有瓶子分类
+        // var monoGroupsMap = GroupMonoByType(toMonos, state); 
+        var monoGroupsMap = GroupMonoByType(bucket.Abilities, state);
         if (monoGroupsMap.Count < 2) yield break;
         
         foreach (var from in fromMonos)

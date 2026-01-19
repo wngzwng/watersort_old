@@ -64,6 +64,28 @@ public class Demo
       return false;
    }
 
+   public static bool Test(
+      List<List<int>> bottles,
+      List<int> capacities,
+      out List<Move> solutionMoves,
+      bool stepByStep = false
+   )
+   {
+      var tubes = bottles
+         .Select((bottle, index) => Tube.CreateTube(bottle, capacities[index]))
+         .ToList();
+      var state = new State(tubes);
+      
+      var solver = new Demo();
+      solutionMoves = null;
+      solver.stepByStep = stepByStep;
+      if (solver.Run(state, out solutionMoves))
+      {
+         return true;
+      }
+      return false;
+   }
+
    public static State CreateState(List<List<int>> bottles, int bottleCapacity, List<int>? extraEmptyConfig = null)
    {
       var tubes = bottles

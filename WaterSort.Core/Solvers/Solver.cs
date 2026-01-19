@@ -37,22 +37,38 @@ public sealed class Solver
 
     public IEnumerable<IReadOnlyList<Move>> SolveDfsStack(State start, bool stepByStep = false)
     {
+        // ─────────────────────────
+        // Local Helpers
+        // ─────────────────────────
+        static void RemoveLastCount(List<MoveGroup> groups, int removeLastCount)
+        {
+            for (var i = 0; i < removeLastCount; i++)
+            {
+                groups.RemoveAt(groups.Count - 1);
+            }
+        }
+
+        // ─────────────────────────
+        // 0) Init
+        // ─────────────────────────
         _nodeCount = 0;
+
         var visited = new HashSet<StateKey>();
         var path = new List<MoveGroup>();
 
         // ─────────────────────────
-        // 0) 初始规整（Normalize-2）
+        // 1) Normalize Start
         // ─────────────────────────
-        ApplyNormalizeInPlace(start, stepByStep, titleBefore: "初始关卡", titleAfter: "初始关卡规整后");
+        ApplyNormalizeInPlace(start, path, stepByStep, titleBefore: "初始关卡", titleAfter: "初始关卡规整后");
 
-        // 初始节点加入 visited（只用于非终盘）
         if (_useVisited)
         {
-            var startKey = _hasher.BuildKey(start);
-            visited.Add(startKey);
+            visited.Add(_hasher.BuildKey(start));
         }
 
+        // ─────────────────────────
+        // 2) Push Root Frame
+        // ─────────────────────────
         var stack = new Stack<DfsFrame>();
         stack.Push(new DfsFrame(
             start,
@@ -65,32 +81,34 @@ public sealed class Solver
         var curDepth = 0;
 
         // ─────────────────────────
-        // DFS 主循环
+        // 3) DFS Main Loop
         // ─────────────────────────
         while (stack.Count > 0)
         {
             var frame = stack.Peek();
 
-            // 1) 已是终盘 => 产出解并回溯
+            // 3.1) Goal => yield + backtrack
             if (IsGoal(frame.State))
             {
                 yield return Flatten(path);
 
                 stack.Pop();
                 curDepth--;
+
                 if (frame.Incoming > 0)
-                    path.RemoveAt(path.Count - frame.Incoming);
+                    RemoveLastCount(path, frame.Incoming);
 
                 continue;
             }
 
-            // 2) 无更多 MoveGroup => 回溯
+            // 3.2) No more MoveGroup => backtrack
             if (!frame.Enumerator.MoveNext())
             {
                 stack.Pop();
                 curDepth--;
+
                 if (frame.Incoming > 0)
-                    path.RemoveAt(path.Count - frame.Incoming);
+                    RemoveLastCount(path, frame.Incoming);
 
                 if (stepByStep)
                     StepPause($"没有移动了，回溯, curDepth={curDepth}, frameDepth={frame.Depth}");
@@ -98,13 +116,17 @@ public sealed class Solver
                 continue;
             }
 
+            // ─────────────────────────
+            // 4) Expand One MoveGroup
+            // ─────────────────────────
             var group = frame.Enumerator.Current;
 
-            // 3) Apply：用 MoveActuator 应用 MoveGroup（在 clone 上）
             if (stepByStep)
                 LogState(frame.State, $"移动前: curDepth={curDepth}, frameDepth={frame.Depth}");
 
             var next = frame.State.DeepClone();
+
+            // 4.1) Apply group
             ApplyGroup(next, group);
 
             if (stepByStep)
@@ -113,16 +135,21 @@ public sealed class Solver
                 LogState(next, $"移动后: curDepth={curDepth}, frameDepth={frame.Depth}");
             }
 
-            // 4) 规整：Normalize-2（可能改变 next，并给出 nextGroup）
+            // ─────────────────────────
+            // 5) Normalize Next (optional)
+            // ─────────────────────────
             List<MoveGroup> groupList = [group];
-            // var nextGroup = group;
+
             if (TryNormalize(next, out var normalizedGroup))
             {
                 groupList.Add(normalizedGroup);
                 ApplyGroup(next, normalizedGroup);
+
                 if (stepByStep)
+                {
                     LogMoveGroup(normalizedGroup);
                     LogState(next, $"规整后: curDepth={curDepth}, frameDepth={frame.Depth}");
+                }
             }
             else
             {
@@ -130,22 +157,23 @@ public sealed class Solver
                     Console.WriteLine("======= 无需规整 ========");
             }
 
-            // 5) next 是终盘 => 直接产出（不进 visited）
+            // ─────────────────────────
+            // 6) Next is Goal => yield (no push)
+            // ─────────────────────────
             if (IsGoal(next))
             {
-                foreach (var moveGroup in groupList)
-                {
-                    path.Add(moveGroup);
-                }
+                foreach (var g in groupList)
+                    path.Add(g);
 
-                var groupListCount = groupList.Count;
                 yield return Flatten(path);
-                // path.RemoveAt(path.Count - 1);
-                path.RemoveAt(path.Count - groupListCount);
+
+                RemoveLastCount(path, groupList.Count);
                 continue;
             }
 
-            // 6) visited 仅作用于非终盘
+            // ─────────────────────────
+            // 7) Visited Check (only for non-goal)
+            // ─────────────────────────
             if (_useVisited)
             {
                 var key = _hasher.BuildKey(next);
@@ -157,15 +185,17 @@ public sealed class Solver
                 {
                     if (stepByStep)
                         StepPause("已访问节点, 跳过");
+
+                    // ⚠️ 这里不能回滚 path：因为你还没把 groupList 加进去
                     continue;
                 }
             }
 
-            // 7) 继续向下 DFS
-            foreach (var moveGroup in groupList)
-            {
-                path.Add(moveGroup);
-            }
+            // ─────────────────────────
+            // 8) Push Next Frame
+            // ─────────────────────────
+            foreach (var g in groupList)
+                path.Add(g);
 
             stack.Push(new DfsFrame(
                 next,
@@ -180,6 +210,7 @@ public sealed class Solver
         }
     }
 
+
     // ------------------------------------------------------------
     // Apply：通过 MoveActuator 应用 MoveGroup
     // ------------------------------------------------------------
@@ -193,7 +224,7 @@ public sealed class Solver
     // ------------------------------------------------------------
     // Normalize：原地规整 + 返回“规整 MoveGroup”
     // ------------------------------------------------------------
-    private void ApplyNormalizeInPlace(State start, bool stepByStep, string titleBefore, string titleAfter)
+    private void ApplyNormalizeInPlace(State start, List<MoveGroup> path, bool stepByStep, string titleBefore, string titleAfter)
     {
         var groups = _explorer.Normal(start).ToList();
         if (stepByStep)
@@ -207,6 +238,7 @@ public sealed class Solver
             if (stepByStep)
                 LogMoveGroup(g);
             ApplyGroup(start, g);
+            path.Add(g);
         }
 
         if (stepByStep)
@@ -226,7 +258,7 @@ public sealed class Solver
 
         normalizedGroup = new MoveGroup();
         normalizedGroup.Description = "规整化";
-        normalizedGroup.Moves = groups.SelectMany(groups => groups.Moves).ToList();
+        normalizedGroup.Moves = groups.SelectMany(group => group.Moves).ToList();
         if (normalizedGroup.Moves.Count <= 0)
         {
             return false;
