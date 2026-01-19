@@ -1,7 +1,12 @@
 ﻿using System.Diagnostics;
 using WaterSort.Core;
 using WaterSort.Core.CommonSolver;
+using WaterSort.Core.Solvers;
 using WaterSort.Core.WaterSortSolver.Solver;
+using Move = WaterSort.Core.CommonSolver.Move;
+using Solver = WaterSort.Core.CommonSolver.Solver;
+using State = WaterSort.Core.CommonSolver.State;
+using Tube = WaterSort.Core.CommonSolver.Tube;
 
 class Program
 {
@@ -15,8 +20,10 @@ class Program
         //
         // Console.WriteLine("\nAll tests completed.");
         
-        TestSolver();
+        // TestSolver();
         // TestCommonSolver();
+
+        TestDemoSolver();
     }
 
     static void TestCommonSolver()
@@ -26,6 +33,27 @@ class Program
         var test = new CommonSolverSpeedTest();
         var solver = SolverFactory.CreateDefault();
         test.Run(input, output, solver);
+    }
+
+    static void TestDemoSolver()
+    {
+        List<List<int>> bottles =
+        [
+            [1, 1, 2, 2],
+            [3, 3, 4, 4],
+            [2, 2, 3, 3],
+            [4, 4, 1, 1],
+        ];
+
+        List<int> extraEmptyConfig = [4, 4];
+        if (Demo.Test(bottles, 4, out var solutionMoves, extraEmptyConfig, true))
+        {
+            Console.WriteLine($"有解, {solutionMoves.Count}步");
+            Console.WriteLine(string.Join(",\n", solutionMoves));
+            return;
+        }
+        Console.WriteLine($"无解");
+        
     }
     static void TestSolver()
     { 

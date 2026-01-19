@@ -141,30 +141,100 @@ public class MoveGroupExplorer
 
     private IEnumerable<MoveGroup> NormalCore(State state, ColorBucket bucket)
     {
-        var fromMonos = bucket.FromMonos;
-        var toMonos = bucket.ToMonos;
-        
-        var monoGroupsMap = GroupMonoByType(toMonos, state);
-        // 相同了类型的转换
-        foreach (var from in fromMonos)
+        bool CanFreeable(TubeMoveAbility from, int allAcceptCount)
         {
-            // from 所在的 mono 组（同类型组）
-            var includeMonos = monoGroupsMap
-                .FirstOrDefault(g => g.Any(x => x.TubeIndex == from.TubeIndex));
-
-            if (includeMonos == null || includeMonos.Count <= 1)
-            {
-                continue;
-            }
-            
-            // 先得到所有可接收 mono to（桶内同色，Select 只负责排除自己/AcceptCount>0）
-            var monoTos = SelectTos(from, includeMonos);
-            if (monoTos.Count <= 0 || monoTos.Sum(x => x.AcceptCount) < from.ExportCount)
-                continue;
-            
-            yield return  BuildMoveGroupGreedy(from, monoTos, from.ExportCount);
+            return from.ExportCount <= (allAcceptCount - from.AcceptCount);
         }
+
+        var monos = bucket.Abilities
+            .Where(a =>
+                a.ExportCount > 0 &&
+                a.AcceptCount > 0 &&
+                state.Tubes[a.TubeIndex].IsMonochrome
+            )
+            .ToList();
+
+        if (monos.Count <= 1)
+            yield break;
+
+        int allAcceptCount = monos.Sum(x => x.AcceptCount);
+
+        // 1) From-first：优先找要腾空的瓶（export 少的优先）
+        var freeSource = monos
+            .Where(from => CanFreeable(from, allAcceptCount))
+            .OrderBy(from => from.ExportCount)
+            .ThenBy(from => from.TubeIndex)
+            .FirstOrDefault();
+
+        if (freeSource == null)
+            yield break;
+
+        // 2) targets：排除 freeSource，自身按 AcceptCount 大的优先（更容易接满）
+        var targets = monos
+            .Where(a => a.TubeIndex != freeSource.TubeIndex)
+            .OrderByDescending(a => a.AcceptCount)
+            .ThenBy(a => a.TubeIndex)
+            .ToList();
+
+        // 必须有足够的总接收容量才能腾空
+        if (targets.Sum(x => x.AcceptCount) < freeSource.ExportCount)
+            yield break;
+
+        // 3) 构造 moveGroup：必须 full-drain freeSource
+        var moveGroup = BuildMoveGroupGreedy(freeSource, targets, freeSource.ExportCount);
+
+        if (moveGroup == null || moveGroup.Moves == null || moveGroup.Moves.Count == 0)
+            yield break;
+
+        // 强校验：必须把 freeSource 全倒完，否则“不能腾空”= 没意义
+        int moved = moveGroup.Moves.Sum(m => m.Count);
+        if (moved < freeSource.ExportCount)
+            yield break;
+
+        moveGroup.Description = $"颜色({bucket.Color})的规整化（腾空 {freeSource.TubeIndex}）";
+        yield return moveGroup;
     }
+    
+    // private IEnumerable<MoveGroup> NormalCore(State state, ColorBucket bucket)
+    // {
+    //     var fromMonos = bucket.FromMonos;
+    //     var toMonos = bucket.ToMonos;
+    //     
+    //     var monoGroupsMap = GroupMonoByType(toMonos, state);
+    //     // 相同了类型的转换
+    //     foreach (var from in fromMonos)
+    //     {
+    //         if (state.Tubes[from.TubeIndex].IsEmpty)
+    //             continue;
+    //         
+    //         // from 所在的 mono 组（同类型组）
+    //         var includeMonos = monoGroupsMap
+    //             .FirstOrDefault(g => g.Any(x => x.TubeIndex == from.TubeIndex));
+    //
+    //         if (includeMonos == null || includeMonos.Count <= 1)
+    //         {
+    //             continue;
+    //         }
+    //         
+    //         // 剔除空瓶
+    //         var includeMonosWithOutEmpty = includeMonos.Where(ability 
+    //                     => !state.Tubes[ability.TubeIndex].IsEmpty).ToList();
+    //         
+    //         if (includeMonosWithOutEmpty.Count <= 1)
+    //         {
+    //             continue;
+    //         }
+    //         
+    //         // 先得到所有可接收 mono to（桶内同色，Select 只负责排除自己/AcceptCount>0）
+    //         var monoTos = SelectTos(from, includeMonosWithOutEmpty);
+    //         if (monoTos.Count <= 0 || monoTos.Sum(x => x.AcceptCount) < from.ExportCount)
+    //             continue;
+    //         
+    //         var moveGroup =  BuildMoveGroupGreedy(from, monoTos, from.ExportCount);
+    //         moveGroup.Description = "规整化";
+    //         yield return moveGroup;
+    //     }
+    // }
     
     
     // ------------------------------------------------------------
@@ -186,8 +256,9 @@ public class MoveGroupExplorer
 
             if (nonTos.Sum(x => x.AcceptCount) < from.ExportCount)
                 continue;
-
-            yield return BuildMoveGroupGreedy(from, nonTos, from.ExportCount);
+            var moveGroup = BuildMoveGroupGreedy(from, nonTos, from.ExportCount);
+            moveGroup.Description = " 1) nonMono -> nonMono";
+            yield return moveGroup;
         }
 
         // ========== 1 + 2) nonMono -> nonMono + mono ==========
@@ -232,7 +303,11 @@ public class MoveGroupExplorer
                 AppendMovesGreedy(g, from, monos, ref r);
 
                 if (r == 0)
+                {
+                    g.Description = "1 + 2) nonMono -> nonMono + mono";
                     yield return g;
+                    
+                }
             }
         }
 
@@ -262,7 +337,11 @@ public class MoveGroupExplorer
 
                 // 可选保险：确保填满
                 if (g.Moves.Sum(m => m.Count) == from.ExportCount)
-                    yield return g;
+                {
+                    g.Description = "2) nonMono -> mono";
+                    yield return g; 
+                }
+                   
             }
         }
         
@@ -275,12 +354,16 @@ public class MoveGroupExplorer
             
             if (nonTos.Sum(x => x.AcceptCount) < from.ExportCount)
                 continue;
-            
-            yield return BuildMoveGroupGreedy(from, nonTos, from.ExportCount);
+
+            var moveGroup = BuildMoveGroupGreedy(from, nonTos, from.ExportCount);
+            moveGroup.Description = "3) mono -> nonMono ";
+            yield return moveGroup; 
         }
         
         // ========== 4) mono -> mono ==========  不同类型的转换
         var monoGroupsMap = GroupMonoByType(toMonos, state);
+        if (monoGroupsMap.Count < 2) yield break;
+        
         foreach (var from in fromMonos)
         {
             // 先得到所有可接收 mono to（桶内同色，Select 只负责排除自己/AcceptCount>0）
@@ -309,7 +392,11 @@ public class MoveGroupExplorer
                     continue;
 
                 // ok：产出一个 MoveGroup（只用这个 group 的 tos 来接）
-                yield return BuildMoveGroupGreedy(from, groupTos, from.ExportCount);
+             
+                var moveGroup = BuildMoveGroupGreedy(from, groupTos, from.ExportCount);
+                moveGroup.Description = "   4.1 ) mono -> mono 不同类型";
+                yield return moveGroup; 
+                // yield return BuildMoveGroupGreedy(from, groupTos, from.ExportCount);
             }
         }
     }

@@ -4,8 +4,7 @@ public sealed class Solver
 {
     private readonly MoveGroupExplorer _explorer;
     private readonly MoveActuator _actuator;
-    private readonly Normalizer2 _normalizer2;   // 你现有的 Normalize-2
-    private readonly StateHasher _hasher;        // BuildKey(state)
+    private readonly IStateHasher _hasher;        // BuildKey(state)
     private readonly bool _useVisited = true;
 
     private long _nodeCount;
@@ -13,12 +12,10 @@ public sealed class Solver
     public Solver(
         MoveGroupExplorer explorer,
         MoveActuator actuator,
-        Normalizer2 normalizer2,
-        StateHasher hasher)
+        IStateHasher hasher)
     {
         _explorer = explorer;
         _actuator = actuator;
-        _normalizer2 = normalizer2;
         _hasher = hasher;
     }
 
@@ -27,14 +24,14 @@ public sealed class Solver
         public State State { get; }
         public IEnumerator<MoveGroup> Enumerator { get; }
         public int Depth { get; }
-        public MoveGroup? Incoming { get; }
+        public int Incoming { get; }
 
-        public DfsFrame(State state, IEnumerator<MoveGroup> enumerator, int depth, MoveGroup? incoming)
+        public DfsFrame(State state, IEnumerator<MoveGroup> enumerator, int depth, int incoming = 0)
         {
             State = state;
             Enumerator = enumerator;
             Depth = depth;
-            Incoming = incoming;
+            Incoming = 0;
         }
     }
 
@@ -61,7 +58,7 @@ public sealed class Solver
             start,
             _explorer.Explore(start).GetEnumerator(),
             depth: 0,
-            incoming: null
+            incoming: 0
         ));
         _nodeCount++;
 
@@ -81,8 +78,8 @@ public sealed class Solver
 
                 stack.Pop();
                 curDepth--;
-                if (frame.Incoming != null)
-                    path.RemoveAt(path.Count - 1);
+                if (frame.Incoming > 0)
+                    path.RemoveAt(path.Count - frame.Incoming);
 
                 continue;
             }
@@ -92,8 +89,8 @@ public sealed class Solver
             {
                 stack.Pop();
                 curDepth--;
-                if (frame.Incoming != null)
-                    path.RemoveAt(path.Count - 1);
+                if (frame.Incoming > 0)
+                    path.RemoveAt(path.Count - frame.Incoming);
 
                 if (stepByStep)
                     StepPause($"没有移动了，回溯, curDepth={curDepth}, frameDepth={frame.Depth}");
@@ -117,11 +114,14 @@ public sealed class Solver
             }
 
             // 4) 规整：Normalize-2（可能改变 next，并给出 nextGroup）
-            var nextGroup = group;
-            if (TryNormalize(next, group, out var normalizedGroup))
+            List<MoveGroup> groupList = [group];
+            // var nextGroup = group;
+            if (TryNormalize(next, out var normalizedGroup))
             {
-                nextGroup = normalizedGroup;
+                groupList.Add(normalizedGroup);
+                ApplyGroup(next, normalizedGroup);
                 if (stepByStep)
+                    LogMoveGroup(normalizedGroup);
                     LogState(next, $"规整后: curDepth={curDepth}, frameDepth={frame.Depth}");
             }
             else
@@ -133,9 +133,15 @@ public sealed class Solver
             // 5) next 是终盘 => 直接产出（不进 visited）
             if (IsGoal(next))
             {
-                path.Add(nextGroup);
+                foreach (var moveGroup in groupList)
+                {
+                    path.Add(moveGroup);
+                }
+
+                var groupListCount = groupList.Count;
                 yield return Flatten(path);
-                path.RemoveAt(path.Count - 1);
+                // path.RemoveAt(path.Count - 1);
+                path.RemoveAt(path.Count - groupListCount);
                 continue;
             }
 
@@ -156,13 +162,16 @@ public sealed class Solver
             }
 
             // 7) 继续向下 DFS
-            path.Add(nextGroup);
+            foreach (var moveGroup in groupList)
+            {
+                path.Add(moveGroup);
+            }
 
             stack.Push(new DfsFrame(
                 next,
                 _explorer.Explore(next).GetEnumerator(),
                 depth: ++curDepth,
-                incoming: nextGroup
+                incoming: groupList.Count
             ));
             _nodeCount++;
 
@@ -186,7 +195,7 @@ public sealed class Solver
     // ------------------------------------------------------------
     private void ApplyNormalizeInPlace(State start, bool stepByStep, string titleBefore, string titleAfter)
     {
-        var groups = _normalizer2.Normalize(start).ToList();
+        var groups = _explorer.Normal(start).ToList();
         if (stepByStep)
             LogState(start, titleBefore);
 
@@ -204,11 +213,25 @@ public sealed class Solver
             LogState(start, titleAfter);
     }
 
-    private bool TryNormalize(State state, MoveGroup justApplied, out MoveGroup normalizedGroup)
+    private bool TryNormalize(State state, out MoveGroup normalizedGroup)
     {
         // 你原逻辑是：TryNormalize(next, group, out normalizedGroup)
         // 这里保持接口
-        return _normalizer2.TryNormalize(state, justApplied, out normalizedGroup);
+        var groups = _explorer.Normal(state).ToList();
+        if (groups.Count == 0)
+        {
+            normalizedGroup = null;
+            return false;
+        }
+
+        normalizedGroup = new MoveGroup();
+        normalizedGroup.Description = "规整化";
+        normalizedGroup.Moves = groups.SelectMany(groups => groups.Moves).ToList();
+        if (normalizedGroup.Moves.Count <= 0)
+        {
+            return false;
+        }
+        return true;
     }
 
     // ------------------------------------------------------------
@@ -219,7 +242,7 @@ public sealed class Solver
         // TODO: 你自己的终盘判定
         // 例如：所有 tube 要么空要么单色满
         // return state.IsSolved();
-        return true;
+        return state.Tubes.All(t => t.IsEmpty || (t.IsMonochrome && t.IsFull));
     }
 
     private static IReadOnlyList<Move> Flatten(List<MoveGroup> path)
@@ -243,7 +266,7 @@ public sealed class Solver
 
     private static void LogMoveGroup(MoveGroup group)
     {
-        Console.WriteLine("MoveGroup:");
+        Console.WriteLine($"MoveGroup: {group.Description}");
         foreach (var m in group.Moves)
             Console.WriteLine($"  {m.From} -> {m.To}, color={m.Color}, count={m.Count}");
     }
