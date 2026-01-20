@@ -64,6 +64,7 @@ public class Demo
       List<List<int>> bottles, 
       int bottleCapacity, 
       out List<Move> solutionMoves,
+      out long nodeCount,
       List<int>? extraEmptyConfig = null,
       bool stepByStep = false
       )
@@ -76,8 +77,10 @@ public class Demo
       solver.stepByStep = stepByStep;
       if (solver.Run(state, out solutionMoves))
       {
+         nodeCount = solver._solver.NodeCount;
          return true;
       }
+      nodeCount = solver._solver.NodeCount;
       return false;
    }
 

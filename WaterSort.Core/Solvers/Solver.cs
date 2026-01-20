@@ -8,6 +8,8 @@ public sealed class Solver
     private readonly bool _useVisited = true;
 
     private long _nodeCount;
+    
+    public long NodeCount => _nodeCount;
 
     public Solver(
         MoveGroupExplorer explorer,

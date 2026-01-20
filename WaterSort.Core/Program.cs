@@ -38,18 +38,18 @@ class Program
     static void TestDemoSolver()
     {
         // // 长试管
-        // List<List<int>> bottles =
-        // [
-        //     [1, 5, 1, 5, 7, 4, 4, 2],
-        //     [4, 6, 2, 3, 5, 2, 6, 1],
-        //     [5, 7, 2, 6, 3, 4, 1, 2],
-        //     [5, 2, 3, 7, 3, 6, 3, 1],
-        //     [1, 1, 6, 6, 4, 2, 5, 7],
-        //     [3, 3, 5, 7, 2, 4, 4, 5],
-        //     [1, 7, 6, 6, 3, 7, 4, 7],
-        // ];
-        // var bottleCapacity = 8;
-        // List<int> extraEmptyConfig = [4, 4, 2];
+        List<List<int>> bottles =
+        [
+            [1, 5, 1, 5, 7, 4, 4, 2],
+            [4, 6, 2, 3, 5, 2, 6, 1],
+            [5, 7, 2, 6, 3, 4, 1, 2],
+            [5, 2, 3, 7, 3, 6, 3, 1],
+            [1, 1, 6, 6, 4, 2, 5, 7],
+            [3, 3, 5, 7, 2, 4, 4, 5],
+            [1, 7, 6, 6, 3, 7, 4, 7],
+        ];
+        var bottleCapacity = 8;
+        List<int> extraEmptyConfig = [4, 4, 2];
         
         // List<List<int>> bottles =
         // [
@@ -102,39 +102,40 @@ class Program
         // ];
         //
         // var bottleCapacity = 4;
-        // List<int> extraEmptyConfig = [3, 2];
-
-        List<List<int>> bottles =
-        [
-            [4, 3, 2, 1],
-            [1, 6, 2, 5],
-            [9, 6, 8, 7],
-            [4, 8, 3, 10],
-            [9, 11, 8, 5],
-            [10, 6, 3, 7],
-            [3, 7, 12, 4],
-            [6, 9, 1, 10],
-            [11, 12, 5, 11],
-            [9, 12, 12, 10],
-            [5, 2, 8, 1],
-            [7, 2, 4, 11],
-        ];
-        
-        var bottleCapacity = 4;
-        List<int> extraEmptyConfig = [4, 4];
+        // // List<int> extraEmptyConfig = [3, 2];
+        //
+        // List<List<int>> bottles =
+        // [
+        //     [4, 3, 2, 1],
+        //     [1, 6, 2, 5],
+        //     [9, 6, 8, 7],
+        //     [4, 8, 3, 10],
+        //     [9, 11, 8, 5],
+        //     [10, 6, 3, 7],
+        //     [3, 7, 12, 4],
+        //     [6, 9, 1, 10],  
+        //     [11, 12, 5, 11],
+        //     [9, 12, 12, 10],
+        //     [5, 2, 8, 1],
+        //     [7, 2, 4, 11],
+        // ];
+        //
+        // var bottleCapacity = 4;
+        // List<int> extraEmptyConfig = [4, 4];
             
         
         var sw = Stopwatch.StartNew();
-        if (Demo.Test(bottles, bottleCapacity, out var solutionMoves, extraEmptyConfig))
+        if (Demo.Test(bottles, bottleCapacity, out var solutionMoves, out var nodeCount, extraEmptyConfig))
         // if (Demo.Test(bottles, bottleCapacities, out var solutionMoves))
         {
             sw.Stop();
+            
             Console.WriteLine(string.Join(",\n", solutionMoves));
-            Console.WriteLine($"有解, {solutionMoves.Count}步, 耗时：{sw.Elapsed.TotalMilliseconds:F3}ms");
+            Console.WriteLine($"有解, {solutionMoves.Count}步, 耗时：{sw.Elapsed.TotalMilliseconds:F3}ms, 搜索节点数：{nodeCount}");
             return;
         }
         sw.Stop();
-        Console.WriteLine($"无解, 耗时：{sw.Elapsed.TotalMilliseconds:F3}ms");
+        Console.WriteLine($"无解, 耗时：{sw.Elapsed.TotalMilliseconds:F3}ms, 搜索节点数：{nodeCount}");
         
     }
     static void TestSolver()
@@ -235,7 +236,7 @@ class Program
         ];
         
         var bottleCapacity = 4;
-        List<int> extraEmptyConfig = [2, 2, 1];
+        List<int> extraEmptyConfig = [4, 4];
 
         
         var tubes = bottles

@@ -20,7 +20,7 @@ public sealed class CanonicalStateHasher : IStateHasher
         // 1. 分离三类 tube
         // ─────────────────────────
 
-        var nonMonoTopBoundaries = new List<int>();
+        var topBoundaries = BuildTopBoundaries(state.Tubes);
         var monoAndEmpty = new List<TubeSignature>();
 
         for (int i = 0; i < state.Tubes.Count; i++)
@@ -32,15 +32,10 @@ public sealed class CanonicalStateHasher : IStateHasher
                 // 单色瓶 / 空瓶：位置无关
                 monoAndEmpty.Add(TubeSignature.From(tube));
             } 
-            else
-            {
-                // 非单色瓶：位置相关，只取顶部边界
-                nonMonoTopBoundaries.Add(BuildTopBoundary(tube));
-            }
         }
         // 打印
         if (OpenVisual)
-            Console.WriteLine(Render(nonMonoTopBoundaries, monoAndEmpty));
+            Console.WriteLine(Render(topBoundaries, monoAndEmpty));
 
         // ─────────────────────────
         // 2. 排序
@@ -59,7 +54,7 @@ public sealed class CanonicalStateHasher : IStateHasher
         var hash = new HashCode();
 
         // 非单色瓶：顺序敏感
-        foreach (var sig in nonMonoTopBoundaries)
+        foreach (var sig in topBoundaries)
             hash.Add(sig);
 
         // 单色瓶 & 空瓶：顺序无关（已排序）
@@ -84,6 +79,17 @@ public sealed class CanonicalStateHasher : IStateHasher
                 topBoundary = i + 1;
         }
         return topBoundary;
+    }
+
+    private List<int> BuildTopBoundaries(IEnumerable<Tube> tubes)
+    {
+        List<int> boundaries = new();
+        foreach (var tube in tubes)
+        {
+            boundaries.Add(BuildTopBoundary(tube));
+        }
+
+        return boundaries;
     }
 
     private string Render(List<int> nonMonoTopBoundaries, List<TubeSignature> monoAndEmpty)
