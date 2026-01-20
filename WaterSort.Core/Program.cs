@@ -20,7 +20,7 @@ class Program
         //
         // Console.WriteLine("\nAll tests completed.");
         
-        // TestSolver();
+        TestSolver();
         // TestCommonSolver();
 
         TestDemoSolver();
@@ -38,18 +38,18 @@ class Program
     static void TestDemoSolver()
     {
         // // 长试管
-        List<List<int>> bottles =
-        [
-            [1, 5, 1, 5, 7, 4, 4, 2],
-            [4, 6, 2, 3, 5, 2, 6, 1],
-            [5, 7, 2, 6, 3, 4, 1, 2],
-            [5, 2, 3, 7, 3, 6, 3, 1],
-            [1, 1, 6, 6, 4, 2, 5, 7],
-            [3, 3, 5, 7, 2, 4, 4, 5],
-            [1, 7, 6, 6, 3, 7, 4, 7],
-        ];
-        var bottleCapacity = 8;
-        List<int> extraEmptyConfig = [4, 4, 2];
+        // List<List<int>> bottles =
+        // [
+        //     [1, 5, 1, 5, 7, 4, 4, 2],
+        //     [4, 6, 2, 3, 5, 2, 6, 1],
+        //     [5, 7, 2, 6, 3, 4, 1, 2],
+        //     [5, 2, 3, 7, 3, 6, 3, 1],
+        //     [1, 1, 6, 6, 4, 2, 5, 7],
+        //     [3, 3, 5, 7, 2, 4, 4, 5],
+        //     [1, 7, 6, 6, 3, 7, 4, 7],
+        // ];
+        // var bottleCapacity = 8;
+        // List<int> extraEmptyConfig = [4, 4];
         
         // List<List<int>> bottles =
         // [
@@ -82,27 +82,27 @@ class Program
         // List<int> extraEmptyConfig = [2, 2];
         
         
-        // List<List<int>> bottles =
-        // [
-        //     [12, 3, 11, 1],
-        //     [2, 10, 4, 2],
-        //     [6, 4, 10, 7],
-        //     [7, 3, 1, 5],
-        //     [8, 9, 8, 6],
-        //     [13, 9, 12, 5],
-        //     [8, 2, 11, 5],
-        //     [4, 11, 7, 13],
-        //     [6, 13, 1, 3],
-        //     [8, 11, 1, 9],
-        //     [12, 7, 4, 2],
-        //     [12, 6, 9, 5],
-        //     [10, 3, 13, 10],
-        //     // [],
-        //     // []
-        // ];
-        //
-        // var bottleCapacity = 4;
-        // // List<int> extraEmptyConfig = [3, 2];
+        List<List<int>> bottles =
+        [
+            [8, 2, 11, 5],
+            [2, 10, 4, 2],
+            [7, 3, 1, 5],
+            [4, 11, 7, 13],
+            [6, 13, 1, 3],
+            [6, 4, 10, 7],
+            [8, 11, 1, 9],
+            [12, 7, 4, 2],
+            [12, 6, 9, 5],
+            [12, 3, 11, 1],
+            [8, 9, 8, 6],
+            [13, 9, 12, 5],
+            [10, 3, 13, 10],
+            // [],
+            // []
+        ];
+        
+        var bottleCapacity = 4;
+        List<int> extraEmptyConfig = [3, 1];
         //
         // List<List<int>> bottles =
         // [
@@ -236,7 +236,7 @@ class Program
         ];
         
         var bottleCapacity = 4;
-        List<int> extraEmptyConfig = [4, 4];
+        List<int> extraEmptyConfig = [3, 1];
 
         
         var tubes = bottles
