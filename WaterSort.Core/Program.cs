@@ -49,7 +49,7 @@ class Program
         //     [1, 7, 6, 6, 3, 7, 4, 7],
         // ];
         // var bottleCapacity = 8;
-        // List<int> extraEmptyConfig = [8, 8];
+        // List<int> extraEmptyConfig = [4, 4, 2];
         
         // List<List<int>> bottles =
         // [
@@ -80,29 +80,49 @@ class Program
         // ];
         // var bottleCapacity = 4;
         // List<int> extraEmptyConfig = [2, 2];
-        //
         
+        
+        // List<List<int>> bottles =
+        // [
+        //     [12, 3, 11, 1],
+        //     [2, 10, 4, 2],
+        //     [6, 4, 10, 7],
+        //     [7, 3, 1, 5],
+        //     [8, 9, 8, 6],
+        //     [13, 9, 12, 5],
+        //     [8, 2, 11, 5],
+        //     [4, 11, 7, 13],
+        //     [6, 13, 1, 3],
+        //     [8, 11, 1, 9],
+        //     [12, 7, 4, 2],
+        //     [12, 6, 9, 5],
+        //     [10, 3, 13, 10],
+        //     // [],
+        //     // []
+        // ];
+        //
+        // var bottleCapacity = 4;
+        // List<int> extraEmptyConfig = [3, 2];
+
         List<List<int>> bottles =
         [
-            [8, 2, 11, 5],
-            [2, 10, 4, 2],
-            [7, 3, 1, 5],
-            [4, 11, 7, 13],
-            [6, 13, 1, 3],
-            [6, 4, 10, 7],
-            [8, 11, 1, 9],
-            [12, 7, 4, 2],
-            [12, 6, 9, 5],
-            [12, 3, 11, 1],
-            [8, 9, 8, 6],
-            [13, 9, 12, 5],
-            [10, 3, 13, 10],
-            // [],
-            // []
+            [4, 3, 2, 1],
+            [1, 6, 2, 5],
+            [9, 6, 8, 7],
+            [4, 8, 3, 10],
+            [9, 11, 8, 5],
+            [10, 6, 3, 7],
+            [3, 7, 12, 4],
+            [6, 9, 1, 10],
+            [11, 12, 5, 11],
+            [9, 12, 12, 10],
+            [5, 2, 8, 1],
+            [7, 2, 4, 11],
         ];
         
         var bottleCapacity = 4;
         List<int> extraEmptyConfig = [4, 4];
+            
         
         var sw = Stopwatch.StartNew();
         if (Demo.Test(bottles, bottleCapacity, out var solutionMoves, extraEmptyConfig))
@@ -215,7 +235,7 @@ class Program
         ];
         
         var bottleCapacity = 4;
-        List<int> extraEmptyConfig = [3, 3];
+        List<int> extraEmptyConfig = [2, 2, 1];
 
         
         var tubes = bottles

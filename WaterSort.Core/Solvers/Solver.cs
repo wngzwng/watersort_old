@@ -187,7 +187,8 @@ public sealed class Solver
                     if (stepByStep)
                         StepPause("已访问节点, 跳过");
 
-                    // 这里还没把 groupList 加入 path，所以不需要回滚
+                    // 剪枝：撤销本次 append 的 group / normalizedGroup
+                    RollbackTo(path, beforeAppend);
                     continue;
                 }
             }
