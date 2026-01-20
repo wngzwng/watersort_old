@@ -24,14 +24,16 @@ public sealed class Solver
         public State State { get; }
         public IEnumerator<MoveGroup> Enumerator { get; }
         public int Depth { get; }
-        public int Incoming { get; }
+        
+        // 进入该 frame 时，path 的长度
+        public int PathCountAtEntry { get; }
 
-        public DfsFrame(State state, IEnumerator<MoveGroup> enumerator, int depth, int incoming)
+        public DfsFrame(State state, IEnumerator<MoveGroup> enumerator, int depth, int pathCountAtEntry)
         {
             State = state;
             Enumerator = enumerator;
             Depth = depth;
-            Incoming = incoming;
+            PathCountAtEntry = pathCountAtEntry;
         }
     }
 
@@ -40,15 +42,17 @@ public sealed class Solver
         // ─────────────────────────
         // Local Helpers
         // ─────────────────────────
-        static void RemoveLastCount(List<MoveGroup> groups, int removeLastCount)
+        static void RollbackTo(List<MoveGroup> path, int pathCountAtEntry)
         {
-            if (removeLastCount < 0 || removeLastCount > groups.Count)
-                throw new ArgumentException($"removeLastCount({removeLastCount}) 小于0或者比当前 groups({groups.Count}) 大");
+            if (pathCountAtEntry < 0 || pathCountAtEntry > path.Count)
+                throw new ArgumentException(
+                    $"pathCountAtEntry({pathCountAtEntry}) 不合法，当前 path.Count={path.Count}");
 
-            if (removeLastCount == 0)
+            var removeCount = path.Count - pathCountAtEntry;
+            if (removeCount <= 0)
                 return;
 
-            groups.RemoveRange(groups.Count - removeLastCount, removeLastCount);
+            path.RemoveRange(pathCountAtEntry, removeCount);
         }
 
         // ─────────────────────────
@@ -75,7 +79,7 @@ public sealed class Solver
             start,
             _explorer.Explore(start).GetEnumerator(),
             depth: 0,
-            incoming: path.Count
+            pathCountAtEntry: path.Count
         ));
         _nodeCount++;
 
@@ -95,8 +99,8 @@ public sealed class Solver
 
                 stack.Pop();
                 curDepth--;
-
-                RemoveLastCount(path, frame.Incoming);
+                RollbackTo(path, frame.PathCountAtEntry);
+                
                 continue;
             }
 
@@ -105,8 +109,7 @@ public sealed class Solver
             {
                 stack.Pop();
                 curDepth--;
-
-                RemoveLastCount(path, frame.Incoming);
+                RollbackTo(path, frame.PathCountAtEntry);
 
                 if (stepByStep)
                     StepPause($"没有移动了，回溯, curDepth={curDepth}, frameDepth={frame.Depth}");
@@ -136,13 +139,15 @@ public sealed class Solver
             // ─────────────────────────
             // 5) Normalize Next (optional)
             // ─────────────────────────
-            var groupList = new List<MoveGroup> { group };
+            var beforeAppend = path.Count;
+            
+            path.Add(group);
 
             if (TryNormalize(next, out var normalizedGroup))
             {
-                groupList.Add(normalizedGroup);
                 ApplyGroup(next, normalizedGroup);
-
+                path.Add(normalizedGroup);
+                
                 if (stepByStep)
                 {
                     LogMoveGroup(normalizedGroup);
@@ -160,12 +165,10 @@ public sealed class Solver
             // ─────────────────────────
             if (IsGoal(next))
             {
-                foreach (var g in groupList)
-                    path.Add(g);
-
                 yield return Flatten(path);
-
-                RemoveLastCount(path, groupList.Count);
+                
+                // 回退到 append 前（撤销 group + normalizedGroup)
+                RollbackTo(path, beforeAppend);
                 continue;
             }
 
@@ -192,14 +195,11 @@ public sealed class Solver
             // ─────────────────────────
             // 8) Push Next Frame
             // ─────────────────────────
-            foreach (var g in groupList)
-                path.Add(g);
-
             stack.Push(new DfsFrame(
                 next,
                 _explorer.Explore(next).GetEnumerator(),
-                depth: ++curDepth,
-                incoming: groupList.Count
+                depth: ++curDepth, 
+                pathCountAtEntry: beforeAppend
             ));
             _nodeCount++;
 
