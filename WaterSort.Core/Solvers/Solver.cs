@@ -1,5 +1,7 @@
 namespace WaterSort.Core.Solvers;
 
+
+
 public sealed class Solver
 {
     private readonly MoveGroupExplorer _explorer;
@@ -38,44 +40,232 @@ public sealed class Solver
             PathCountAtEntry = pathCountAtEntry;
         }
     }
+    
+    private readonly struct ExpandResult
+    {
+        public readonly State Next;
+        public readonly int PathCountAtEntry;     // 追加到 path 的 group 数（1 或 2）
+        public readonly bool IsGoal;
+        public readonly bool IsPruned;
+
+        public ExpandResult(State next, int pathCountAtEntry, bool isGoal, bool isPruned)
+        {
+            Next = next;
+            PathCountAtEntry = pathCountAtEntry;
+            IsGoal = isGoal;
+            IsPruned = isPruned;
+        }
+    }
+    
+    private static bool TryGetNextGroup(DfsFrame frame, out MoveGroup group)
+    {
+        if (!frame.Enumerator.MoveNext())
+        {
+            group = null!;
+            return false;
+        }
+
+        group = frame.Enumerator.Current;
+        return true;
+    }
+    
+    private void RollbackTo(List<MoveGroup> path, int pathCountAtEntry)
+    {
+        if (pathCountAtEntry < 0 || pathCountAtEntry > path.Count)
+            throw new ArgumentException(
+                $"pathCountAtEntry({pathCountAtEntry}) 不合法，当前 path.Count={path.Count}");
+
+        var removeCount = path.Count - pathCountAtEntry;
+        if (removeCount <= 0)
+            return;
+
+        path.RemoveRange(pathCountAtEntry, removeCount);
+    }
+
+    // public IEnumerable<IReadOnlyList<Move>> SolveDfsStack(State start, bool stepByStep = false)
+    // {
+    //     // ─────────────────────────
+    //     // Local Helpers
+    //     // ─────────────────────────
+    //     static void RollbackTo(List<MoveGroup> path, int pathCountAtEntry)
+    //     {
+    //         if (pathCountAtEntry < 0 || pathCountAtEntry > path.Count)
+    //             throw new ArgumentException(
+    //                 $"pathCountAtEntry({pathCountAtEntry}) 不合法，当前 path.Count={path.Count}");
+    //
+    //         var removeCount = path.Count - pathCountAtEntry;
+    //         if (removeCount <= 0)
+    //             return;
+    //
+    //         path.RemoveRange(pathCountAtEntry, removeCount);
+    //     }
+    //
+    //     // ─────────────────────────
+    //     // 0) Init
+    //     // ─────────────────────────
+    //     _nodeCount = 0;
+    //
+    //     var visited = new HashSet<StateKey>();
+    //     var path = new List<MoveGroup>();
+    //
+    //     // ─────────────────────────
+    //     // 1) Normalize Start
+    //     // ─────────────────────────
+    //     ApplyNormalizeInPlace(start, path, stepByStep, titleBefore: "初始关卡", titleAfter: "初始关卡规整后");
+    //
+    //     if (_useVisited)
+    //         visited.Add(_hasher.BuildKey(start));
+    //
+    //     // ─────────────────────────
+    //     // 2) Push Root Frame
+    //     // ─────────────────────────
+    //     var stack = new Stack<DfsFrame>();
+    //     stack.Push(new DfsFrame(
+    //         start,
+    //         _explorer.Explore(start).GetEnumerator(),
+    //         depth: 0,
+    //         pathCountAtEntry: path.Count
+    //     ));
+    //     _nodeCount++;
+    //
+    //     var curDepth = 0;
+    //
+    //     // ─────────────────────────
+    //     // 3) DFS Main Loop
+    //     // ─────────────────────────
+    //     while (stack.Count > 0)
+    //     {
+    //         var frame = stack.Peek();
+    //
+    //         // 3.1) Goal => yield + backtrack
+    //         if (IsGoal(frame.State))
+    //         {
+    //             yield return Flatten(path);
+    //
+    //             stack.Pop();
+    //             curDepth--;
+    //             RollbackTo(path, frame.PathCountAtEntry);
+    //             
+    //             continue;
+    //         }
+    //
+    //         // 3.2) No more MoveGroup => backtrack
+    //         if (!frame.Enumerator.MoveNext())
+    //         {
+    //             stack.Pop();
+    //             curDepth--;
+    //             RollbackTo(path, frame.PathCountAtEntry);
+    //
+    //             if (stepByStep)
+    //                 StepPause($"没有移动了，回溯, curDepth={curDepth}, frameDepth={frame.Depth}");
+    //
+    //             continue;
+    //         }
+    //
+    //         // ─────────────────────────
+    //         // 4) Expand One MoveGroup
+    //         // ─────────────────────────
+    //         var group = frame.Enumerator.Current;
+    //
+    //         if (stepByStep)
+    //             LogState(frame.State, $"移动前: curDepth={curDepth}, frameDepth={frame.Depth}");
+    //
+    //         var next = frame.State.DeepClone();
+    //
+    //         // 4.1) Apply group
+    //         ApplyGroup(next, group);
+    //
+    //         if (stepByStep)
+    //         {
+    //             LogMoveGroup(group);
+    //             LogState(next, $"移动后: curDepth={curDepth}, frameDepth={frame.Depth}");
+    //         }
+    //
+    //         // ─────────────────────────
+    //         // 5) Normalize Next (optional)
+    //         // ─────────────────────────
+    //         var beforeAppend = path.Count;
+    //         
+    //         path.Add(group);
+    //
+    //         if (TryNormalize(next, out var normalizedGroup))
+    //         {
+    //             ApplyGroup(next, normalizedGroup);
+    //             path.Add(normalizedGroup);
+    //             
+    //             if (stepByStep)
+    //             {
+    //                 LogMoveGroup(normalizedGroup);
+    //                 LogState(next, $"规整后: curDepth={curDepth}, frameDepth={frame.Depth}");
+    //             }
+    //         }
+    //         else
+    //         {
+    //             if (stepByStep)
+    //                 Console.WriteLine("======= 无需规整 ========");
+    //         }
+    //
+    //         // ─────────────────────────
+    //         // 6) Next is Goal => yield (no push)
+    //         // ─────────────────────────
+    //         if (IsGoal(next))
+    //         {
+    //             yield return Flatten(path);
+    //             
+    //             // 回退到 append 前（撤销 group + normalizedGroup)
+    //             RollbackTo(path, beforeAppend);
+    //             continue;
+    //         }
+    //
+    //         // ─────────────────────────
+    //         // 7) Visited Check (only for non-goal)
+    //         // ─────────────────────────
+    //         if (_useVisited)
+    //         {
+    //             var key = _hasher.BuildKey(next);
+    //
+    //             if (stepByStep)
+    //                 Console.WriteLine($"hash: {key.GetHashCode()}");
+    //
+    //             if (!visited.Add(key))
+    //             {
+    //                 if (stepByStep)
+    //                     StepPause("已访问节点, 跳过");
+    //
+    //                 // 剪枝：撤销本次 append 的 group / normalizedGroup
+    //                 RollbackTo(path, beforeAppend);
+    //                 continue;
+    //             }
+    //         }
+    //
+    //         // ─────────────────────────
+    //         // 8) Push Next Frame
+    //         // ─────────────────────────
+    //         stack.Push(new DfsFrame(
+    //             next,
+    //             _explorer.Explore(next).GetEnumerator(),
+    //             depth: ++curDepth, 
+    //             pathCountAtEntry: beforeAppend
+    //         ));
+    //         _nodeCount++;
+    //
+    //         if (stepByStep)
+    //             StepPause("向下 DFS");
+    //     }
+    // }
 
     public IEnumerable<IReadOnlyList<Move>> SolveDfsStack(State start, bool stepByStep = false)
     {
-        // ─────────────────────────
-        // Local Helpers
-        // ─────────────────────────
-        static void RollbackTo(List<MoveGroup> path, int pathCountAtEntry)
-        {
-            if (pathCountAtEntry < 0 || pathCountAtEntry > path.Count)
-                throw new ArgumentException(
-                    $"pathCountAtEntry({pathCountAtEntry}) 不合法，当前 path.Count={path.Count}");
-
-            var removeCount = path.Count - pathCountAtEntry;
-            if (removeCount <= 0)
-                return;
-
-            path.RemoveRange(pathCountAtEntry, removeCount);
-        }
-
-        // ─────────────────────────
-        // 0) Init
-        // ─────────────────────────
         _nodeCount = 0;
 
         var visited = new HashSet<StateKey>();
         var path = new List<MoveGroup>();
-
-        // ─────────────────────────
-        // 1) Normalize Start
-        // ─────────────────────────
-        ApplyNormalizeInPlace(start, path, stepByStep, titleBefore: "初始关卡", titleAfter: "初始关卡规整后");
-
+        
+        ApplyNormalizeInPlace(start, path, stepByStep, "初始关卡", "初始关卡规整后");
+        
         if (_useVisited)
             visited.Add(_hasher.BuildKey(start));
 
-        // ─────────────────────────
-        // 2) Push Root Frame
-        // ─────────────────────────
         var stack = new Stack<DfsFrame>();
         stack.Push(new DfsFrame(
             start,
@@ -83,135 +273,113 @@ public sealed class Solver
             depth: 0,
             pathCountAtEntry: path.Count
         ));
+        
         _nodeCount++;
-
-        var curDepth = 0;
-
-        // ─────────────────────────
-        // 3) DFS Main Loop
-        // ─────────────────────────
+        var curDepth = 1;
         while (stack.Count > 0)
         {
             var frame = stack.Peek();
 
-            // 3.1) Goal => yield + backtrack
             if (IsGoal(frame.State))
             {
                 yield return Flatten(path);
 
-                stack.Pop();
                 curDepth--;
+                stack.Pop();
                 RollbackTo(path, frame.PathCountAtEntry);
                 
                 continue;
             }
 
-            // 3.2) No more MoveGroup => backtrack
-            if (!frame.Enumerator.MoveNext())
+            if (!TryGetNextGroup(frame, out var group))
             {
-                stack.Pop();
                 curDepth--;
+                stack.Pop();
                 RollbackTo(path, frame.PathCountAtEntry);
-
+                
                 if (stepByStep)
                     StepPause($"没有移动了，回溯, curDepth={curDepth}, frameDepth={frame.Depth}");
-
+                
                 continue;
             }
 
-            // ─────────────────────────
-            // 4) Expand One MoveGroup
-            // ─────────────────────────
-            var group = frame.Enumerator.Current;
+            var expand = ExpandOne(frame.State, group, path, visited, stepByStep);
+            if (expand.IsPruned)
+                continue;
 
-            if (stepByStep)
-                LogState(frame.State, $"移动前: curDepth={curDepth}, frameDepth={frame.Depth}");
-
-            var next = frame.State.DeepClone();
-
-            // 4.1) Apply group
-            ApplyGroup(next, group);
-
-            if (stepByStep)
-            {
-                LogMoveGroup(group);
-                LogState(next, $"移动后: curDepth={curDepth}, frameDepth={frame.Depth}");
-            }
-
-            // ─────────────────────────
-            // 5) Normalize Next (optional)
-            // ─────────────────────────
-            var beforeAppend = path.Count;
-            
-            path.Add(group);
-
-            if (TryNormalize(next, out var normalizedGroup))
-            {
-                ApplyGroup(next, normalizedGroup);
-                path.Add(normalizedGroup);
-                
-                if (stepByStep)
-                {
-                    LogMoveGroup(normalizedGroup);
-                    LogState(next, $"规整后: curDepth={curDepth}, frameDepth={frame.Depth}");
-                }
-            }
-            else
-            {
-                if (stepByStep)
-                    Console.WriteLine("======= 无需规整 ========");
-            }
-
-            // ─────────────────────────
-            // 6) Next is Goal => yield (no push)
-            // ─────────────────────────
-            if (IsGoal(next))
+            if (expand.IsGoal)
             {
                 yield return Flatten(path);
-                
-                // 回退到 append 前（撤销 group + normalizedGroup)
-                RollbackTo(path, beforeAppend);
-                continue;
+                RollbackTo(path, expand.PathCountAtEntry);
+                continue;  
             }
 
-            // ─────────────────────────
-            // 7) Visited Check (only for non-goal)
-            // ─────────────────────────
-            if (_useVisited)
-            {
-                var key = _hasher.BuildKey(next);
-
-                if (stepByStep)
-                    Console.WriteLine($"hash: {key.GetHashCode()}");
-
-                if (!visited.Add(key))
-                {
-                    if (stepByStep)
-                        StepPause("已访问节点, 跳过");
-
-                    // 剪枝：撤销本次 append 的 group / normalizedGroup
-                    RollbackTo(path, beforeAppend);
-                    continue;
-                }
-            }
-
-            // ─────────────────────────
-            // 8) Push Next Frame
-            // ─────────────────────────
+            curDepth++;
             stack.Push(new DfsFrame(
-                next,
-                _explorer.Explore(next).GetEnumerator(),
-                depth: ++curDepth, 
-                pathCountAtEntry: beforeAppend
+                expand.Next,
+                _explorer.Explore(expand.Next).GetEnumerator(),
+                depth: curDepth,
+                pathCountAtEntry: expand.PathCountAtEntry
             ));
             _nodeCount++;
-
-            if (stepByStep)
-                StepPause("向下 DFS");
         }
+
     }
 
+    
+    private ExpandResult ExpandOne(State cur, MoveGroup group, List<MoveGroup> path, HashSet<StateKey> visited, bool stepByStep)
+    {
+        if (stepByStep)
+            LogState(cur, "移动前");
 
+        var next = cur.DeepClone();
+        ApplyGroup(next, group);
+
+        if (stepByStep)
+        {
+            LogMoveGroup(group);
+            LogState(next, "移动后");
+        }
+
+        // normalize
+        var beforeAppend = path.Count;
+        path.Add(group);  
+
+        if (TryNormalize(next, out var normalized))
+        {
+            ApplyGroup(next, normalized);
+            path.Add(normalized);
+
+            if (stepByStep)
+            {
+                LogMoveGroup(normalized);
+                LogState(next, "规整后");
+            }
+        }
+
+        // goal
+        if (IsGoal(next))
+            return new ExpandResult(next, beforeAppend, isGoal: true, isPruned: false);
+
+        // visited prune
+        if (_useVisited)
+        {
+            var key = _hasher.BuildKey(next);
+            if (!visited.Add(key))
+            {
+                // 回滚本次追加的 path
+                // path.RemoveRange(path.Count - added, added);
+                RollbackTo(path, beforeAppend);
+                if (stepByStep)
+                    StepPause("已访问节点, 跳过");
+
+                return new ExpandResult(next, pathCountAtEntry: beforeAppend, isGoal: false, isPruned: true);
+            }
+        }
+
+        return new ExpandResult(next, pathCountAtEntry: beforeAppend, isGoal: false, isPruned: false);
+    }
+    
 
     // ------------------------------------------------------------
     // Apply：通过 MoveActuator 应用 MoveGroup

@@ -393,7 +393,6 @@ public class MoveGroupExplorer
                     continue;
 
                 // ok：产出一个 MoveGroup（只用这个 group 的 tos 来接）
-             
                 var moveGroup = BuildMoveGroupGreedy(from, groupTos, from.ExportCount);
                 moveGroup.Description = "   4.1 ) mono -> mono 不同类型";
                 yield return moveGroup; 
