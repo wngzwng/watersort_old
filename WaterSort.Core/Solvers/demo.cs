@@ -31,12 +31,29 @@ public class Demo
       {
          if (stepByStep)
             Console.WriteLine($"移动前 {move}");
+         // if (move is { From: 10, To: 0 })
+         // {
+         //    Console.WriteLine($"移动前: \n{state}");
+         // }
+         //
+         // if (move is { From: 0, To: 10 })
+         // {
+         //    Console.WriteLine($"移动前: \n{state}");
+         // }
       };
 
       moveActuator.OnApplyAfter += (state, move) =>
       {
          if (stepByStep)
             Console.WriteLine($"移动后 {move}");
+         // if (move is { From: 10, To: 0 })
+         // {
+         //    Console.WriteLine($"{move}\t移动后: \n{state}");
+         // }
+         // if (move is { From: 0, To: 10 })
+         // {
+         //    Console.WriteLine($"移动前: \n{state}");
+         // }
       };
       
       _solver = new Solver(explorer, moveActuator, hasher);

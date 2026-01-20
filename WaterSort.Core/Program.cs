@@ -69,26 +69,52 @@ class Program
         // ];
         // var bottleCapacities = [4, 4, 3];
         
-        List<List<int>> bottles =  
-        [
-            [6, 2, 5, 1],
-            [4, 5, 4, 1],
-            [5, 6, 4, 2],
-            [3, 6, 2, 3],
-            [1, 2, 4, 1],
-            [3, 5, 3, 6],
-        ];
-        var bottleCapacity = 4;
-        List<int> extraEmptyConfig = [4, 3];
+        // List<List<int>> bottles =  
+        // [
+        //     [6, 2, 5, 1],
+        //     [4, 5, 4, 1],
+        //     [5, 6, 4, 2],
+        //     [3, 6, 2, 3],
+        //     [1, 2, 4, 1],
+        //     [3, 5, 3, 6],
+        // ];
+        // var bottleCapacity = 4;
+        // List<int> extraEmptyConfig = [2, 2];
+        //
         
+        List<List<int>> bottles =
+        [
+            [8, 2, 11, 5],
+            [2, 10, 4, 2],
+            [7, 3, 1, 5],
+            [4, 11, 7, 13],
+            [6, 13, 1, 3],
+            [6, 4, 10, 7],
+            [8, 11, 1, 9],
+            [12, 7, 4, 2],
+            [12, 6, 9, 5],
+            [12, 3, 11, 1],
+            [8, 9, 8, 6],
+            [13, 9, 12, 5],
+            [10, 3, 13, 10],
+            // [],
+            // []
+        ];
+        
+        var bottleCapacity = 4;
+        List<int> extraEmptyConfig = [4, 4];
+        
+        var sw = Stopwatch.StartNew();
         if (Demo.Test(bottles, bottleCapacity, out var solutionMoves, extraEmptyConfig))
         // if (Demo.Test(bottles, bottleCapacities, out var solutionMoves))
         {
+            sw.Stop();
             Console.WriteLine(string.Join(",\n", solutionMoves));
-            Console.WriteLine($"有解, {solutionMoves.Count}步");
+            Console.WriteLine($"有解, {solutionMoves.Count}步, 耗时：{sw.Elapsed.TotalMilliseconds:F3}ms");
             return;
         }
-        Console.WriteLine($"无解");
+        sw.Stop();
+        Console.WriteLine($"无解, 耗时：{sw.Elapsed.TotalMilliseconds:F3}ms");
         
     }
     static void TestSolver()
@@ -157,17 +183,39 @@ class Program
         //     [3, 3, 2]
         // ];
         
-        List<List<int>> bottles =  
+        // List<List<int>> bottles =  
+        // [
+        //     [6, 2, 5, 1],
+        //     [4, 5, 4, 1],
+        //     [5, 6, 4, 2],
+        //     [3, 6, 2, 3],
+        //     [1, 2, 4, 1],
+        //     [3, 5, 3, 6],
+        // ];
+        // var bottleCapacity = 4;
+        // List<int> extraEmptyConfig = [4, 3];
+        
+        List<List<int>> bottles =
         [
-            [6, 2, 5, 1],
-            [4, 5, 4, 1],
-            [5, 6, 4, 2],
-            [3, 6, 2, 3],
-            [1, 2, 4, 1],
-            [3, 5, 3, 6],
+            [8, 2, 11, 5],
+            [2, 10, 4, 2],
+            [7, 3, 1, 5],
+            [4, 11, 7, 13],
+            [6, 13, 1, 3],
+            [6, 4, 10, 7],
+            [8, 11, 1, 9],
+            [12, 7, 4, 2],
+            [12, 6, 9, 5],
+            [12, 3, 11, 1],
+            [8, 9, 8, 6],
+            [13, 9, 12, 5],
+            [10, 3, 13, 10],
+            // [],
+            // []
         ];
+        
         var bottleCapacity = 4;
-        List<int> extraEmptyConfig = [4, 3];
+        List<int> extraEmptyConfig = [3, 3];
 
         
         var tubes = bottles

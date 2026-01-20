@@ -26,12 +26,12 @@ public sealed class Solver
         public int Depth { get; }
         public int Incoming { get; }
 
-        public DfsFrame(State state, IEnumerator<MoveGroup> enumerator, int depth, int incoming = 0)
+        public DfsFrame(State state, IEnumerator<MoveGroup> enumerator, int depth, int incoming)
         {
             State = state;
             Enumerator = enumerator;
             Depth = depth;
-            Incoming = 0;
+            Incoming = incoming;
         }
     }
 
@@ -42,10 +42,13 @@ public sealed class Solver
         // ─────────────────────────
         static void RemoveLastCount(List<MoveGroup> groups, int removeLastCount)
         {
-            for (var i = 0; i < removeLastCount; i++)
-            {
-                groups.RemoveAt(groups.Count - 1);
-            }
+            if (removeLastCount < 0 || removeLastCount > groups.Count)
+                throw new ArgumentException($"removeLastCount({removeLastCount}) 小于0或者比当前 groups({groups.Count}) 大");
+
+            if (removeLastCount == 0)
+                return;
+
+            groups.RemoveRange(groups.Count - removeLastCount, removeLastCount);
         }
 
         // ─────────────────────────
@@ -62,9 +65,7 @@ public sealed class Solver
         ApplyNormalizeInPlace(start, path, stepByStep, titleBefore: "初始关卡", titleAfter: "初始关卡规整后");
 
         if (_useVisited)
-        {
             visited.Add(_hasher.BuildKey(start));
-        }
 
         // ─────────────────────────
         // 2) Push Root Frame
@@ -74,7 +75,7 @@ public sealed class Solver
             start,
             _explorer.Explore(start).GetEnumerator(),
             depth: 0,
-            incoming: 0
+            incoming: path.Count
         ));
         _nodeCount++;
 
@@ -95,9 +96,7 @@ public sealed class Solver
                 stack.Pop();
                 curDepth--;
 
-                if (frame.Incoming > 0)
-                    RemoveLastCount(path, frame.Incoming);
-
+                RemoveLastCount(path, frame.Incoming);
                 continue;
             }
 
@@ -107,8 +106,7 @@ public sealed class Solver
                 stack.Pop();
                 curDepth--;
 
-                if (frame.Incoming > 0)
-                    RemoveLastCount(path, frame.Incoming);
+                RemoveLastCount(path, frame.Incoming);
 
                 if (stepByStep)
                     StepPause($"没有移动了，回溯, curDepth={curDepth}, frameDepth={frame.Depth}");
@@ -138,7 +136,7 @@ public sealed class Solver
             // ─────────────────────────
             // 5) Normalize Next (optional)
             // ─────────────────────────
-            List<MoveGroup> groupList = [group];
+            var groupList = new List<MoveGroup> { group };
 
             if (TryNormalize(next, out var normalizedGroup))
             {
@@ -186,7 +184,7 @@ public sealed class Solver
                     if (stepByStep)
                         StepPause("已访问节点, 跳过");
 
-                    // ⚠️ 这里不能回滚 path：因为你还没把 groupList 加进去
+                    // 这里还没把 groupList 加入 path，所以不需要回滚
                     continue;
                 }
             }
@@ -209,6 +207,7 @@ public sealed class Solver
                 StepPause("向下 DFS");
         }
     }
+
 
 
     // ------------------------------------------------------------
