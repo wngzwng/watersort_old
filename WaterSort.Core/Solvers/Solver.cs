@@ -2,7 +2,7 @@ namespace WaterSort.Core.Solvers;
 
 public sealed class Solver
 {
-    private readonly MoveGroupExplorer _explorer;
+    private readonly IMoveGroupExplorer _explorer;
     private readonly MoveActuator _actuator;
     private readonly IStateHasher _hasher;
     private readonly bool _useVisited;
@@ -11,7 +11,7 @@ public sealed class Solver
     public long NodeCount => _nodeCount;
 
     public Solver(
-        MoveGroupExplorer explorer,
+        IMoveGroupExplorer explorer,
         MoveActuator actuator,
         IStateHasher hasher,
         bool useVisited = true)
@@ -288,7 +288,23 @@ public sealed class Solver
     // Goal / Flatten
     // ============================================================
     private static bool IsGoal(State state)
-        => state.Tubes.All(t => t.IsEmpty || (t.IsMonochrome && t.IsFull));
+    {
+        for (var i = 0; i < state.Tubes.Count; i++)
+        {
+            var tube = state.Tubes[i];
+            // if (tube.IsEmpty) continue;
+            
+            if (!tube.IsMonochrome || (!tube.IsFull && !tube.IsEmpty))
+                return false;
+            
+            var chain = state.Obstacles.GetRequireAfterApplyChain(i);
+            if (chain.Count > 0)
+                return false;
+        }
+
+        return true;
+    }
+       
 
     private static IReadOnlyList<Move> Flatten(List<MoveGroup> path)
         => path.SelectMany(g => g.Moves).ToList();

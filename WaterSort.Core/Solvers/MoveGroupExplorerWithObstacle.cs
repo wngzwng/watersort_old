@@ -1,140 +1,15 @@
+using WaterSort.Core.Solvers.Obstacles;
+
 namespace WaterSort.Core.Solvers;
-
-// ============================================================
-// ColorBucket：按颜色收集 TubeMoveAbility，并按 Mono/NonMono 分组
-// ============================================================
-public sealed class ColorBucket
-{
-    public int Color { get; }
-
-    private readonly HashSet<int> _tubeIndexSet = new();
-
-    /// <summary>该颜色相关的所有 tube ability（每个 tube 只出现一次）</summary>
-    public List<TubeMoveAbility> Abilities { get; } = new();
-
-    /// <summary>可倒出该颜色的非单色瓶</summary>
-    public List<TubeMoveAbility> FromNonMonos { get; } = new();
-
-    /// <summary>可倒出该颜色的单色瓶</summary>
-    public List<TubeMoveAbility> FromMonos { get; } = new();
-
-    /// <summary>可接收该颜色（或空瓶可接任意色）的非单色瓶</summary>
-    public List<TubeMoveAbility> ToNonMonos { get; } = new();
-
-    /// <summary>可接收该颜色（或空瓶可接任意色）的单色瓶</summary>
-    public List<TubeMoveAbility> ToMonos { get; } = new();
-
-    public ColorBucket(int color) => Color = color;
-
-    /// <summary>
-    /// 将 ability 加入桶：只收集“与该颜色有关”的 tube（每 tube 只收一次）
-    /// </summary>
-    public void Add(TubeMoveAbility ability)
-    {
-        bool related =
-            (ability.ExportCount > 0 && ability.ExportColor == Color)
-            || (ability.AcceptCount > 0 && ability.AcceptColor == Color)
-            || (ability.AcceptCount > 0 && ability.AcceptColor == Tube.COLOR_EMPTY);
-
-        if (!related)
-            return;
-
-        if (!_tubeIndexSet.Add(ability.TubeIndex))
-            return;
-
-        Abilities.Add(ability);
-    }
-
-    /// <summary>
-    /// 根据当前 state 将 Abilities 分成 From/To + Mono/NonMono 四类
-    /// </summary>
-    public void GroupBy(State state)
-    {
-        FromNonMonos.Clear();
-        FromMonos.Clear();
-        ToNonMonos.Clear();
-        ToMonos.Clear();
-
-        foreach (var ability in Abilities)
-        {
-            bool isMono = state.Tubes[ability.TubeIndex].IsMonochrome;
-
-            // From：能倒出该颜色
-            if (ability.ExportCount > 0 && ability.ExportColor == Color)
-            {
-                if (isMono) FromMonos.Add(ability);
-                else FromNonMonos.Add(ability);
-            }
-
-            // To：能接该颜色，或空瓶能接任意色
-            if (ability.AcceptCount > 0 &&
-                (ability.AcceptColor == Color || ability.AcceptColor == Tube.COLOR_EMPTY))
-            {
-                if (isMono) ToMonos.Add(ability);
-                else ToNonMonos.Add(ability);
-            }
-        }
-    }
-
-    /// <summary>
-    /// BuildBuckets：按 ExportColor 建桶，并将相关 tube ability 分配到对应桶
-    /// </summary>
-    public static Dictionary<int, ColorBucket> BuildBuckets(IEnumerable<TubeMoveAbility> abilities)
-    {
-        var list = abilities.ToList();
-        var buckets = new Dictionary<int, ColorBucket>();
-
-        // Step1: 按 ExportColor（且 ExportCount > 0）建立颜色桶
-        foreach (var a in list)
-        {
-            if (a.ExportCount <= 0) continue;
-            if (a.ExportColor == Tube.COLOR_EMPTY) continue;
-
-            if (!buckets.TryGetValue(a.ExportColor, out var bucket))
-            {
-                bucket = new ColorBucket(a.ExportColor);
-                buckets.Add(a.ExportColor, bucket);
-            }
-
-            bucket.Add(a);
-        }
-
-        // Step2: 将 ability 分配到桶
-        foreach (var a in list)
-        {
-            if (a.ExportCount <= 0 && a.AcceptCount <= 0)
-                continue;
-
-            // from: ExportColor 桶
-            if (a.ExportCount > 0 && buckets.TryGetValue(a.ExportColor, out var fromBucket))
-                fromBucket.Add(a);
-
-            // to: AcceptColor 桶（非 empty）
-            if (a.AcceptCount > 0 &&
-                a.AcceptColor != Tube.COLOR_EMPTY &&
-                buckets.TryGetValue(a.AcceptColor, out var toBucket))
-            {
-                toBucket.Add(a);
-            }
-
-            // to: empty => 空瓶可接任意色，加入所有桶
-            if (a.AcceptCount > 0 && a.AcceptColor == Tube.COLOR_EMPTY)
-            {
-                foreach (var bucket in buckets.Values)
-                    bucket.Add(a);
-            }
-        }
-
-        return buckets;
-    }
-}
 
 
 // ============================================================
 // MoveGroupExplorer：生成 MoveGroup（Explore）+ 规整化（Normal）
 // ============================================================
-public sealed class MoveGroupExplorer : IMoveGroupExplorer
+public sealed class MoveGroupExplorerWithObstacle : IMoveGroupExplorer
 {
+    private ObstaclePipeline _obstaclePipeline = new ObstaclePipeline(ObstacleRegistry.CreateDefault());
+    
     public IEnumerable<MoveGroup> Explore(State state)
     {
         foreach (var bucket in BuildAndGroupBuckets(state))
@@ -156,9 +31,9 @@ public sealed class MoveGroupExplorer : IMoveGroupExplorer
     // ------------------------------------------------------------
     // Buckets pipeline
     // ------------------------------------------------------------
-    private static IEnumerable<ColorBucket> BuildAndGroupBuckets(State state)
-    {
-        var abilities = state.BuildTubeAbilities();
+    private IEnumerable<ColorBucket> BuildAndGroupBuckets(State state)
+    { 
+        var abilities = _obstaclePipeline.BuildAdaptedTubeAbilities(state);
         var buckets = ColorBucket.BuildBuckets(abilities);
 
         foreach (var bucket in buckets.Values)
@@ -271,7 +146,7 @@ public sealed class MoveGroupExplorer : IMoveGroupExplorer
             // mono 分叉：按类型分组（目前按 capacity 分组）
             var monoGroups = GroupMonoByType(monoTos, state);
 
-            foreach (var group in monoGroups)
+            foreach (var group in monoGroups.Values)
             {
                 if (group.Sum(x => x.AcceptCount) < remain)
                     continue;
@@ -304,7 +179,7 @@ public sealed class MoveGroupExplorer : IMoveGroupExplorer
 
             var monoGroups = GroupMonoByType(monoTos, state);
 
-            foreach (var group in monoGroups)
+            foreach (var group in monoGroups.Values)
             {
                 if (group.Sum(x => x.AcceptCount) < from.ExportCount)
                     continue;
@@ -335,6 +210,14 @@ public sealed class MoveGroupExplorer : IMoveGroupExplorer
         var monoGroupsMap = GroupMonoByType(bucket.Abilities, state);
         if (monoGroupsMap.Count < 2)
             yield break;
+        
+        Dictionary<int, MonoTypeKey> tubeToGroupKey = new();
+        foreach (var kv in monoGroupsMap)
+        {
+            foreach (var a in kv.Value)
+                tubeToGroupKey[a.TubeIndex] = kv.Key;
+        }
+
 
         foreach (var from in fromMonos)
         {
@@ -343,14 +226,16 @@ public sealed class MoveGroupExplorer : IMoveGroupExplorer
                 continue;
 
             // from 所在类型组（排除同类型）
-            var fromGroup = monoGroupsMap.FirstOrDefault(g => g.Any(x => x.TubeIndex == from.TubeIndex));
+            var fromGroupKey = monoGroupsMap
+                .FirstOrDefault(g => g.Value.Any(x => x.TubeIndex == from.TubeIndex))
+                .Key;
 
             foreach (var group in monoGroupsMap)
             {
-                if (fromGroup != null && ReferenceEquals(group, fromGroup))
+                if (fromGroupKey != null && group.Key == fromGroupKey)
                     continue;
 
-                var groupTos = SelectTargets(from, group);
+                var groupTos = SelectTargets(from, group.Value);
                 if (groupTos.Count == 0)
                     continue;
 
@@ -427,11 +312,12 @@ public sealed class MoveGroupExplorer : IMoveGroupExplorer
     /// mono 类型分组：目前按 Capacity 分组
     /// 你后续可以升级成 (Capacity, Kind) 或 TubeStructuralKey
     /// </summary>
-    private static List<List<TubeMoveAbility>> GroupMonoByType(List<TubeMoveAbility> abilities, State state)
+    private Dictionary<MonoTypeKey, List<TubeMoveAbility>> GroupMonoByType(List<TubeMoveAbility> abilities, State state)
     {
-        return abilities
-            .GroupBy(a => state.Tubes[a.TubeIndex].Capacity)
-            .Select(g => g.ToList())
-            .ToList();
+        // return abilities
+        //     .GroupBy(a => state.Tubes[a.TubeIndex].Capacity)
+        //     .Select(g => g.ToList())
+        //     .ToList();
+        return ObstaclePipeline.GroupMonoByType(abilities, state);
     }
 }

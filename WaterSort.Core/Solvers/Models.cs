@@ -1,5 +1,6 @@
 using System.IO;
 using System.Runtime.InteropServices.JavaScript;
+using WaterSort.Core.Solvers.Obstacles;
 
 namespace WaterSort.Core.Solvers;
 
@@ -71,9 +72,7 @@ public class Tube
             _cells[i] = list[i];
         }
     }
-
-
-
+    
     public int Count => _count;
     public bool IsEmpty => _count == 0;
     public bool IsFull => _count == Capacity;
@@ -121,6 +120,27 @@ public class Tube
             }
 
             return _count - 1 - i;
+        }
+    }
+    
+    /// <summary>
+    /// 顶部连续同色层数
+    /// </summary>
+    public int TopBoundary
+    {
+        get
+        {
+            if (_count == 0) return 0;
+            
+            var c = _cells[_count - 1];
+            int i = _count - 1;
+            for (; i > 0; i--)
+            {
+                if (c != _cells[i - 1])
+                    return i;
+            }
+
+            return 0;
         }
     }
 
@@ -182,14 +202,47 @@ public class State
 {
     public IReadOnlyList<Tube> Tubes { get; }
 
-    public State(IReadOnlyList<Tube> tubes)
+    /// <summary>
+    /// 障碍物实例列表（Entry 数据层）。
+    /// 注意：更新障碍物时会生成新的 Entries（不可变思路）。
+    /// </summary>
+    public IReadOnlyList<ObstacleEntry> ObstacleEntries { get; }
+
+    /// <summary>
+    /// 障碍物查询视图（tube/cell -> obstacles，按优先级排序/有效链截断）。
+    /// 这是由 ObstacleEntries 构建出来的索引，属于“View 层”。
+    /// </summary>
+    public ObstacleCatalog Obstacles { get; private set; }
+
+    public List<List<int>> TubeLayouts { get; private set; }
+
+    public State(IReadOnlyList<Tube> tubes, IReadOnlyList<ObstacleEntry>? obstacleEntries = null, List<List<int>>? tubeLayouts = null)
     {
-        Tubes = tubes;
+        Tubes = tubes ?? throw new ArgumentNullException(nameof(tubes));
+        ObstacleEntries = obstacleEntries ?? Array.Empty<ObstacleEntry>();
+
+        // View 只构建一次（State 不变则 View 不变）
+        Obstacles = new ObstacleCatalog(ObstacleEntries);
+
+        TubeLayouts = tubeLayouts ?? new List<List<int>>();
+    }
+    
+    /// <summary>
+    /// 当 ObstacleEntries 内部状态发生变化（Enabled/CellTargets/Extra 等）后，
+    /// 重建障碍物索引视图（tube/cell -> entries）。
+    /// </summary>
+    public void RebuildObstacleCatalog()
+    {
+        Obstacles = new ObstacleCatalog(ObstacleEntries);
     }
 
     public State DeepClone()
     {
-        return new State(Tubes.Select(Tube.DeepCopy).ToList());
+        // Tube 深拷贝 + 障碍物 entries 可共享（如果 entry 也不可变）
+        // 如果你后续要改 Enabled，就用“生成新 State”的方式更新 entries
+        return new State(
+            Tubes.Select(Tube.DeepCopy).ToList(), 
+            ObstacleEntries.Select(ObstacleEntry.DeepCopy).ToList());
     }
 
 
@@ -221,8 +274,9 @@ public class State
         {
             var cells = new List<string>();
 
-            foreach (var tube in Tubes)
+            for (int i = 0; i < Tubes.Count; i++)
             {
+                var tube = Tubes[i];
                 bool isCapacityLine = layer == tube.Capacity - 1;
                 bool hasColor = layer < tube.Cells.Length;
 
@@ -233,10 +287,17 @@ public class State
                         ? color.ToString("X2")
                         : color.ToString().PadLeft(2);
 
+                    var chain = Obstacles.GetByCell(i, layer);
+                    if (chain.Any(obs => obs.Enabled))
+                    {
+                        string flag = "?";
+                        cells.Add(flag.PadLeft(2));
+                    }
+                    else
+                    {
+                        cells.Add(AnsiColor.Colorize(color, colorStr));
+                    }
                     // cells.Add(colorStr);
-                    cells.Add(AnsiColor.Colorize(color, colorStr))
-                        
-                        ;
                 }
                 else
                 {

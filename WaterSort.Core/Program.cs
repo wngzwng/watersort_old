@@ -2,6 +2,7 @@
 using WaterSort.Core;
 using WaterSort.Core.CommonSolver;
 using WaterSort.Core.Solvers;
+using WaterSort.Core.Solvers.Obstacles;
 using WaterSort.Core.WaterSortSolver.Solver;
 using Move = WaterSort.Core.CommonSolver.Move;
 using Solver = WaterSort.Core.CommonSolver.Solver;
@@ -20,7 +21,7 @@ class Program
         //
         // Console.WriteLine("\nAll tests completed.");
         
-        TestSolver();
+        // TestSolver();
         // TestCommonSolver();
 
         TestDemoSolver();
@@ -51,15 +52,15 @@ class Program
         // var bottleCapacity = 8;
         // List<int> extraEmptyConfig = [4, 4];
         
-        // List<List<int>> bottles =
-        // [
-        //     [1, 1, 2, 2],
-        //     [3, 3, 4, 4],
-        //     [2, 2, 3, 3],
-        //     [4, 4, 1, 1],
-        // ];
-        // var bottleCapacity = 4;
-        // List<int> extraEmptyConfig = [1, 1, 1];
+        List<List<int>> bottles =
+        [
+            [1, 1, 2, 2],
+            [3, 3, 4, 4],
+            [2, 2, 3, 3],
+            [4, 4, 1, 1],
+        ];
+        var bottleCapacity = 4;
+        List<int> extraEmptyConfig = [4, 4];
 
         // List<List<int>> bottles =
         // [
@@ -82,27 +83,27 @@ class Program
         // List<int> extraEmptyConfig = [2, 2];
         
         
-        List<List<int>> bottles =
-        [
-            [8, 2, 11, 5],
-            [2, 10, 4, 2],
-            [7, 3, 1, 5],
-            [4, 11, 7, 13],
-            [6, 13, 1, 3],
-            [6, 4, 10, 7],
-            [8, 11, 1, 9],
-            [12, 7, 4, 2],
-            [12, 6, 9, 5],
-            [12, 3, 11, 1],
-            [8, 9, 8, 6],
-            [13, 9, 12, 5],
-            [10, 3, 13, 10],
-            // [],
-            // []
-        ];
-        
-        var bottleCapacity = 4;
-        List<int> extraEmptyConfig = [3, 1];
+        // List<List<int>> bottles =
+        // [
+        //     [8, 2, 11, 5],
+        //     [2, 10, 4, 2],
+        //     [7, 3, 1, 5],
+        //     [4, 11, 7, 13],
+        //     [6, 13, 1, 3],
+        //     [6, 4, 10, 7],
+        //     [8, 11, 1, 9],
+        //     [12, 7, 4, 2],
+        //     [12, 6, 9, 5],
+        //     [12, 3, 11, 1],
+        //     [8, 9, 8, 6],
+        //     [13, 9, 12, 5],
+        //     [10, 3, 13, 10],
+        //     // [],
+        //     // []
+        // ];
+        //
+        // var bottleCapacity = 4;
+        // List<int> extraEmptyConfig = [3, 2];
         //
         // List<List<int>> bottles =
         // [
@@ -122,10 +123,34 @@ class Program
         //
         // var bottleCapacity = 4;
         // List<int> extraEmptyConfig = [4, 4];
-            
-        
+
+        List<ObstacleEntry> entries =
+        [
+            new ObstacleEntry()
+            {
+                Id = 1,
+                Kind = ObstacleKind.Mystery,
+                TubeTargets = [0],
+                CellTargets = [0, 1, 2]
+            },
+            new ObstacleEntry()
+            {
+                Id = 2,
+                Kind = ObstacleKind.Mystery,
+                TubeTargets = [1],
+                CellTargets = [0, 1, 2]
+            },
+            new ObstacleEntry()
+            {
+                Id = 3,
+                Kind = ObstacleKind.Mystery,
+                TubeTargets = [2],
+                CellTargets = [0, 1, 2]
+            }
+        ];
         var sw = Stopwatch.StartNew();
-        if (Demo.Test(bottles, bottleCapacity, out var solutionMoves, out var nodeCount, extraEmptyConfig))
+        var stepBySteop = false;
+        if (Demo.Test(bottles, bottleCapacity, out var solutionMoves, out var nodeCount, extraEmptyConfig, entries, stepBySteop))
         // if (Demo.Test(bottles, bottleCapacities, out var solutionMoves))
         {
             sw.Stop();
@@ -236,7 +261,7 @@ class Program
         ];
         
         var bottleCapacity = 4;
-        List<int> extraEmptyConfig = [3, 1];
+        List<int> extraEmptyConfig = [3, 3];
 
         
         var tubes = bottles

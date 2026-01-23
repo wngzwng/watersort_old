@@ -1,3 +1,4 @@
+using WaterSort.Core.Solvers.Obstacles;
 namespace WaterSort.Core.Solvers;
 
 public class Demo
@@ -23,9 +24,13 @@ public class Demo
    
    public void SetUp()
    {
-      var explorer = new MoveGroupExplorer();
+      // var explorer = new MoveGroupExplorer();
+      var explorer = new MoveGroupExplorerWithObstacle();
+      
       var moveActuator = new MoveActuator();
       var hasher = new CanonicalStateHasher();
+
+      var obstacleUpdater = new ObstacleUpdater();
 
       moveActuator.OnApplyBefore += (state, move) =>
       {
@@ -46,14 +51,15 @@ public class Demo
       {
          if (stepByStep)
             Console.WriteLine($"移动后 {move}");
-         // if (move is { From: 10, To: 0 })
-         // {
-         //    Console.WriteLine($"{move}\t移动后: \n{state}");
-         // }
+         if (move is { From: 2, To: 5 })
+         {
+            Console.WriteLine($"{move}\t移动后: \n{state}");
+         }
          // if (move is { From: 0, To: 10 })
          // {
          //    Console.WriteLine($"移动前: \n{state}");
          // }
+         obstacleUpdater.UpdateInPlace(state, move);
       };
       
       _solver = new Solver(explorer, moveActuator, hasher);
@@ -66,11 +72,12 @@ public class Demo
       out List<Move> solutionMoves,
       out long nodeCount,
       List<int>? extraEmptyConfig = null,
+      List<ObstacleEntry>? obstacleEntries = null,
       bool stepByStep = false
       )
    {
       
-      var state = CreateState(bottles, bottleCapacity, extraEmptyConfig);
+      var state = CreateState(bottles, bottleCapacity, extraEmptyConfig, obstacleEntries);
 
       var solver = new Demo();
       solutionMoves = null;
@@ -106,7 +113,7 @@ public class Demo
       return false;
    }
 
-   public static State CreateState(List<List<int>> bottles, int bottleCapacity, List<int>? extraEmptyConfig = null)
+   public static State CreateState(List<List<int>> bottles, int bottleCapacity, List<int>? extraEmptyConfig = null, List<ObstacleEntry>? entries = null)
    {
       var tubes = bottles
          .Select(bottle => Tube.CreateTube(bottle, bottleCapacity))
@@ -118,7 +125,7 @@ public class Demo
          tubes.AddRange(emptyTubes);
       }
 
-      var state = new State(tubes);
+      var state = new State(tubes, entries);
       return state;
    }
    
