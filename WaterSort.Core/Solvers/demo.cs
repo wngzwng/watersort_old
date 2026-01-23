@@ -51,10 +51,10 @@ public class Demo
       {
          if (stepByStep)
             Console.WriteLine($"移动后 {move}");
-         if (move is { From: 2, To: 5 })
-         {
-            Console.WriteLine($"{move}\t移动后: \n{state}");
-         }
+         // if (move is { From: 2, To: 5 })
+         // {
+         //    Console.WriteLine($"{move}\t移动后: \n{state}");
+         // }
          // if (move is { From: 0, To: 10 })
          // {
          //    Console.WriteLine($"移动前: \n{state}");
@@ -72,7 +72,7 @@ public class Demo
       out List<Move> solutionMoves,
       out long nodeCount,
       List<int>? extraEmptyConfig = null,
-      List<ObstacleEntry>? obstacleEntries = null,
+      IEnumerable<ObstacleEntry>? obstacleEntries = null,
       bool stepByStep = false
       )
    {
@@ -113,7 +113,7 @@ public class Demo
       return false;
    }
 
-   public static State CreateState(List<List<int>> bottles, int bottleCapacity, List<int>? extraEmptyConfig = null, List<ObstacleEntry>? entries = null)
+   public static State CreateState(List<List<int>> bottles, int bottleCapacity, List<int>? extraEmptyConfig = null, IEnumerable<ObstacleEntry>? entries = null)
    {
       var tubes = bottles
          .Select(bottle => Tube.CreateTube(bottle, bottleCapacity))

@@ -46,6 +46,9 @@ public sealed class CanonicalStateHasher : IStateHasher
 
         // 2.2 单色瓶 & 空瓶：按 TubeSignature 排序
         monoAndEmpty.Sort();
+        
+        // 2.3 所有的存活道具
+        var enableEntries = state.ObstacleEntries.Where(obs => obs.Enabled).ToList();
 
         // ─────────────────────────
         // 3. 组合 hash
@@ -60,6 +63,12 @@ public sealed class CanonicalStateHasher : IStateHasher
         // 单色瓶 & 空瓶：顺序无关（已排序）
         foreach (var sig in monoAndEmpty)
             hash.Add(sig);
+
+        // 道具的部分
+        foreach (var enableEntry in enableEntries)
+        {
+            hash.Add(enableEntry.BuildSignature());
+        }
 
         return new StateKey(hash.ToHashCode());
     }

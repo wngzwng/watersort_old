@@ -2,6 +2,7 @@ namespace WaterSort.Core.Solvers.Obstacles;
 
 public enum ObstacleKind
 {
+    None,
     /// <summary>
     /// 问号
     /// </summary>

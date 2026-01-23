@@ -51,16 +51,16 @@ class Program
         // ];
         // var bottleCapacity = 8;
         // List<int> extraEmptyConfig = [4, 4];
-        
-        List<List<int>> bottles =
-        [
-            [1, 1, 2, 2],
-            [3, 3, 4, 4],
-            [2, 2, 3, 3],
-            [4, 4, 1, 1],
-        ];
-        var bottleCapacity = 4;
-        List<int> extraEmptyConfig = [4, 4];
+        //
+        // List<List<int>> bottles =
+        // [
+        //     [1, 1, 2, 2],
+        //     [3, 3, 4, 4],
+        //     [2, 2, 3, 3],
+        //     [4, 4, 1, 1],
+        // ];
+        // var bottleCapacity = 4;
+        // List<int> extraEmptyConfig = [4, 4];
 
         // List<List<int>> bottles =
         // [
@@ -124,30 +124,93 @@ class Program
         // var bottleCapacity = 4;
         // List<int> extraEmptyConfig = [4, 4];
 
-        List<ObstacleEntry> entries =
+        // List<ObstacleEntry> entries =
+        // [
+        //     new ObstacleEntry()
+        //     {
+        //         Id = 1,
+        //         Kind = ObstacleKind.Mystery,
+        //         TubeTargets = [0],
+        //         CellTargets = [0, 1, 2]
+        //     },
+        //     new ObstacleEntry()
+        //     {
+        //         Id = 2,
+        //         Kind = ObstacleKind.Mystery,
+        //         TubeTargets = [1],
+        //         CellTargets = [0, 1, 2]
+        //     },
+        //     new ObstacleEntry()
+        //     {
+        //         Id = 3,
+        //         Kind = ObstacleKind.Mystery,
+        //         TubeTargets = [2],
+        //         CellTargets = [0, 1, 2]
+        //     }
+        // ];
+
+        // |c,0,9|c,1,4|c,4,5|c,5,9|q,25,29,33,37,41,45
+        // List<List<int>> bottles =
+        // [
+        //     [8, 10, 7], 
+        //     [6, 1, 8], 
+        //     [3, 7, 9], 
+        //     [8, 7, 3], 
+        //     [6, 10, 7], 
+        //     [6, 10, 4], 
+        //     [5, 8, 1], 
+        //     [4, 5, 1], 
+        //     [4, 1, 5], 
+        //     [9, 9, 3], 
+        //     [4, 5, 6], 
+        //     [3, 10, 9]
+        // ]; // |c,0,9|c,1,4|c,4,5|c,5,9|q,25,29,33,37,41,45
+        // var bottleCapacity = 4;
+        // List<int> extraEmptyConfig = [];
+        // var entries = new ObstacleEntryBuilder()
+        //     .AddMysteryCells(6, [1])
+        //     .AddMysteryCells(7, [1])
+        //     .AddMysteryCells(8, [1])
+        //     .AddMysteryCells(9, [1])
+        //     .AddMysteryCells(10, [1])
+        //     .AddMysteryCells(11, [1])
+        //     .AddCurtain(0, 9)
+        //     .AddCurtain(1, 4)
+        //     .AddCurtain(4, 5)
+        //     .AddCurtain(5, 9)
+        //     // .AddClamp(4)
+        //     .BuildList();
+        //
+        
+        List<List<int>> bottles =
         [
-            new ObstacleEntry()
-            {
-                Id = 1,
-                Kind = ObstacleKind.Mystery,
-                TubeTargets = [0],
-                CellTargets = [0, 1, 2]
-            },
-            new ObstacleEntry()
-            {
-                Id = 2,
-                Kind = ObstacleKind.Mystery,
-                TubeTargets = [1],
-                CellTargets = [0, 1, 2]
-            },
-            new ObstacleEntry()
-            {
-                Id = 3,
-                Kind = ObstacleKind.Mystery,
-                TubeTargets = [2],
-                CellTargets = [0, 1, 2]
-            }
-        ];
+            [1, 12, 9, 6], 
+            [5, 7, 12, 3], 
+            [12, 8, 10, 10], 
+            [2, 2], 
+            [5, 8, 6, 1], 
+            [10, 6, 1],
+            [3, 11, 11],
+            [3, 8, 7, 5], 
+            [5, 7, 4, 11],
+            [4, 11, 4, 6], 
+            [9, 9], 
+            [3, 1, 4, 8], 
+            [2, 2, 9], 
+            [12, 7, 10]
+        ]; //|c,0,2|c,1,8|c,7,11|c,8,6|q,0,1,2,4,5,6,8,9,10,16,17,18,21,25,28,29,30,32,33,34,36,37,38,44,45,46,49,53
+        var bottleCapacity = 4;
+        List<int> extraEmptyConfig = [];
+        var entries = new ObstacleEntryBuilder()
+            .PatchAddMysteryCells(bottleCapacity,
+            [
+                0, 1, 2, 4, 5, 6, 8, 9, 10, 16, 17, 18, 21, 25, 28, 29, 30, 32, 33, 34, 36, 37, 38, 44, 45, 46, 49, 53
+            ])
+            .AddCurtain(0, 2)
+            .AddCurtain(1, 8)
+            .AddCurtain(7, 11)
+            .AddCurtain(8, 6)
+            .BuildList();
         var sw = Stopwatch.StartNew();
         var stepBySteop = false;
         if (Demo.Test(bottles, bottleCapacity, out var solutionMoves, out var nodeCount, extraEmptyConfig, entries, stepBySteop))

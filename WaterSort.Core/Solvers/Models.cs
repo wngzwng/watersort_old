@@ -216,10 +216,10 @@ public class State
 
     public List<List<int>> TubeLayouts { get; private set; }
 
-    public State(IReadOnlyList<Tube> tubes, IReadOnlyList<ObstacleEntry>? obstacleEntries = null, List<List<int>>? tubeLayouts = null)
+    public State(IReadOnlyList<Tube> tubes,  IEnumerable<ObstacleEntry>? obstacleEntries = null, List<List<int>>? tubeLayouts = null)
     {
         Tubes = tubes ?? throw new ArgumentNullException(nameof(tubes));
-        ObstacleEntries = obstacleEntries ?? Array.Empty<ObstacleEntry>();
+        ObstacleEntries = obstacleEntries != null ? obstacleEntries.ToList() :  Array.Empty<ObstacleEntry>();
 
         // View 只构建一次（State 不变则 View 不变）
         Obstacles = new ObstacleCatalog(ObstacleEntries);
@@ -287,13 +287,25 @@ public class State
                         ? color.ToString("X2")
                         : color.ToString().PadLeft(2);
 
+                    var hasSpecial = false;
                     var chain = Obstacles.GetByCell(i, layer);
                     if (chain.Any(obs => obs.Enabled))
                     {
                         string flag = "?";
                         cells.Add(flag.PadLeft(2));
+                        hasSpecial = true;
                     }
                     else
+                    {
+                        var curtain = Obstacles.GetByTube(i, ObstacleKind.Curtain);
+                        if (curtain.Count > 0 && curtain[0].Enabled)
+                        {
+                            cells.Add(AnsiColor.Colorize(curtain[0].Color.Value,"#".PadLeft(2)));
+                            hasSpecial = true;
+                        }
+                    }
+                    
+                    if (!hasSpecial)
                     {
                         cells.Add(AnsiColor.Colorize(color, colorStr));
                     }
@@ -311,16 +323,30 @@ public class State
             lines.Add(string.Join(" ", cells));
         }
 
+        
         if (showIndex)
         {
             int width = 3 * Tubes.Count - 1;
             lines.Add(new string('-', width));
             lines.Add(string.Join(" ",
                 Enumerable.Range(0, Tubes.Count)
-                    .Select(i => i.ToString().PadLeft(2))));
+                    .Select(i =>
+                    {
+                        if (HasClamp(this, i))
+                        {
+                            return AnsiColor.Colorize(10, i.ToString()).PadLeft(2);
+                        }
+                        return i.ToString().PadLeft(2);
+                    })));
         }
 
         return string.Join(Environment.NewLine, lines);
+
+        static bool HasClamp(State state, int tubeIndex)
+        {
+            var clamps = state.Obstacles.GetByTube(tubeIndex, ObstacleKind.Clamp);
+            return clamps.Count > 0 && clamps[0].Enabled;
+        }
     }
 
     public override string ToString()

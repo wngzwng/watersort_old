@@ -135,6 +135,27 @@ public sealed class CurtainHandler : IObstacleHandler
     }
 }
 
+public sealed class ClampHandler : IObstacleHandler
+{
+    public ObstacleKind Kind => ObstacleKind.Clamp;
+
+    public void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
+    {
+        // 0) 快速过滤
+        if (!entry.Enabled)
+            return;
+
+        if (ability.TubeIndex < 0 || ability.TubeIndex >= state.Tubes.Count)
+            return;
+
+        if (entry.TubeTargets.Count > 0 && !entry.TubeTargets.Contains(ability.TubeIndex))
+            return;
+
+        // Clamp = 禁止该 tube 倒出
+        ability.ExportCount = 0;
+    }
+}
+
 public sealed class ObstacleRegistry
 {
     private readonly Dictionary<ObstacleKind, IObstacleHandler> _map = new();
@@ -155,6 +176,7 @@ public sealed class ObstacleRegistry
         var registry = new ObstacleRegistry();
         registry.Register(new MysteryHandler());
         registry.Register(new CurtainHandler());
+        registry.Register(new ClampHandler());
         return registry;
     }
 }

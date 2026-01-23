@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace WaterSort.Core.Solvers.Obstacles;
 
 public interface IObstacleExtra {}
@@ -36,12 +38,36 @@ public sealed class ObstacleEntry
         return new ObstacleEntry()
         {
             Id = source.Id,
+            Kind = source.Kind,
             TubeTargets = source.TubeTargets.ToList(),
             CellTargets = source.CellTargets?.ToList(),
             Color = source.Color,
             Enabled = source.Enabled,
             Extra = source.Extra
         };
+    }
+
+    public string BuildSignature()
+    {
+        var sb = new StringBuilder();
+        sb.Append($"{Id}");
+        if (TubeTargets.Count > 0)
+        { 
+            sb.Append("-");
+            sb.AppendJoin("", TubeTargets.Select(tube => tube.ToString()));
+        }
+        if (CellTargets != null && CellTargets.Count > 0)
+        {
+            sb.Append("-");
+            sb.AppendJoin("", CellTargets.Select(tube => tube.ToString()));
+        }
+
+        if (Color != null)
+        {
+            sb.Append($"-{Color}"); 
+        }
+
+        return sb.ToString();
     }
 }
 

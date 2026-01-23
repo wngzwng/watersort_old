@@ -341,11 +341,6 @@ public sealed class ObstacleUpdater
         if (e.CellTargets is null || e.CellTargets.Count == 0)
             return false;
 
-        if (e.Id == 2)
-        {
-            Console.WriteLine("");
-        }
-
         var tube = state.Tubes[facts.From];
 
         // 你这里用 ^1 当“顶层问号 cell”，保持你的定义

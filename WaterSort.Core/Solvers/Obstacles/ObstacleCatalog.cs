@@ -23,8 +23,17 @@ public sealed class ObstacleCatalog
     /// <summary>
     /// 获取某个 tube 上挂载的所有障碍物（按 Priority 降序排列）。
     /// </summary>
-    public IReadOnlyList<ObstacleEntry> GetByTube(int tubeIndex)
-        => _byTube.TryGetValue(tubeIndex, out var list) ? list : Array.Empty<ObstacleEntry>();
+    public IReadOnlyList<ObstacleEntry> GetByTube(int tubeIndex, ObstacleKind? targetKind = null)
+    {
+        if (!_byTube.TryGetValue(tubeIndex, out var list))
+        {
+            return Array.Empty<ObstacleEntry>();
+        }
+
+        if (targetKind != null)
+            return list.Where(entry => entry.Kind == targetKind).ToArray();
+        return list;
+    }
 
     /// <summary>
     /// 获取某个 tube 的某个 cell 上挂载的障碍物（通常用于 Key / Question 等 cell 级机制）。
