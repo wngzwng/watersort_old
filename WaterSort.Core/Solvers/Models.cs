@@ -1,6 +1,7 @@
 using System.IO;
 using System.Runtime.InteropServices.JavaScript;
 using WaterSort.Core.Solvers.Obstacles;
+using WaterSort.Core.Solvers.TubeTopologies;
 
 namespace WaterSort.Core.Solvers;
 
@@ -214,9 +215,9 @@ public class State
     /// </summary>
     public ObstacleCatalog Obstacles { get; private set; }
 
-    public List<List<int>> TubeLayouts { get; private set; }
+    public ITubeTopology TubeTopology { get; private set; }
 
-    public State(IReadOnlyList<Tube> tubes,  IEnumerable<ObstacleEntry>? obstacleEntries = null, List<List<int>>? tubeLayouts = null)
+    public State(IReadOnlyList<Tube> tubes,  IEnumerable<ObstacleEntry>? obstacleEntries = null, ITubeTopology? tubeTopology = null)
     {
         Tubes = tubes ?? throw new ArgumentNullException(nameof(tubes));
         ObstacleEntries = obstacleEntries != null ? obstacleEntries.ToList() :  Array.Empty<ObstacleEntry>();
@@ -224,7 +225,7 @@ public class State
         // View 只构建一次（State 不变则 View 不变）
         Obstacles = new ObstacleCatalog(ObstacleEntries);
 
-        TubeLayouts = tubeLayouts ?? new List<List<int>>();
+        TubeTopology = tubeTopology ?? new LinearTubeTopology(tubes.Count);
     }
     
     /// <summary>
@@ -261,6 +262,99 @@ public class State
         }
     }
     
+    public override string ToString()
+    {
+        return Render(true);
+    }
+    
+    // public string Render(bool hexMode = false, bool showIndex = true)
+    // {
+    //     if (Tubes.Count == 0)
+    //         return "[空盘面]";
+    //
+    //     int maxCapacity = Tubes.Max(t => t.Capacity);
+    //     var lines = new List<string>();
+    //
+    //     // 从顶部到底部渲染
+    //     for (int layer = maxCapacity - 1; layer >= 0; layer--)
+    //     {
+    //         var cells = new List<string>();
+    //
+    //         for (int i = 0; i < Tubes.Count; i++)
+    //         {
+    //             var tube = Tubes[i];
+    //             bool isCapacityLine = layer == tube.Capacity - 1;
+    //             bool hasColor = layer < tube.Cells.Length;
+    //
+    //             if (hasColor)
+    //             {
+    //                 int color = tube.Cells[layer];
+    //                 string colorStr = hexMode
+    //                     ? color.ToString("X2")
+    //                     : color.ToString().PadLeft(2);
+    //
+    //                 var hasSpecial = false;
+    //                 var chain = Obstacles.GetByCell(i, layer);
+    //                 if (chain.Any(obs => obs.Enabled))
+    //                 {
+    //                     string flag = "?";
+    //                     cells.Add(flag.PadLeft(2));
+    //                     hasSpecial = true;
+    //                 }
+    //                 else
+    //                 {
+    //                     var curtain = Obstacles.GetByTube(i, ObstacleKind.Curtain);
+    //                     if (curtain.Count > 0 && curtain[0].Enabled)
+    //                     {
+    //                         cells.Add(AnsiColor.Colorize(curtain[0].Color.Value,"#".PadLeft(2)));
+    //                         hasSpecial = true;
+    //                     }
+    //                 }
+    //                 
+    //                 if (!hasSpecial)
+    //                 {
+    //                     cells.Add(AnsiColor.Colorize(color, colorStr));
+    //                 }
+    //                 // cells.Add(colorStr);
+    //             }
+    //             else
+    //             {
+    //                 if (isCapacityLine)
+    //                     cells.Add(" -");
+    //                 else
+    //                     cells.Add("  ");
+    //             }
+    //         }
+    //
+    //         lines.Add(string.Join(" ", cells));
+    //     }
+    //
+    //     
+    //     if (showIndex)
+    //     {
+    //         int width = 3 * Tubes.Count - 1;
+    //         lines.Add(new string('-', width));
+    //         lines.Add(string.Join(" ",
+    //             Enumerable.Range(0, Tubes.Count)
+    //                 .Select(i =>
+    //                 {
+    //                     if (HasClamp(this, i))
+    //                     {
+    //                         return AnsiColor.Colorize(10, i.ToString()).PadLeft(2);
+    //                     }
+    //                     return i.ToString().PadLeft(2);
+    //                 })));
+    //     }
+    //
+    //     return string.Join(Environment.NewLine, lines);
+    //
+    //     static bool HasClamp(State state, int tubeIndex)
+    //     {
+    //         var clamps = state.Obstacles.GetByTube(tubeIndex, ObstacleKind.Clamp);
+    //         return clamps.Count > 0 && clamps[0].Enabled;
+    //     }
+    // }
+
     public string Render(bool hexMode = false, bool showIndex = true)
     {
         if (Tubes.Count == 0)
@@ -269,88 +363,88 @@ public class State
         int maxCapacity = Tubes.Max(t => t.Capacity);
         var lines = new List<string>();
 
-        // 从顶部到底部渲染
+        // ─────────────────────────────
+        // Body
+        // ─────────────────────────────
         for (int layer = maxCapacity - 1; layer >= 0; layer--)
         {
             var cells = new List<string>();
 
             for (int i = 0; i < Tubes.Count; i++)
             {
-                var tube = Tubes[i];
-                bool isCapacityLine = layer == tube.Capacity - 1;
-                bool hasColor = layer < tube.Cells.Length;
-
-                if (hasColor)
-                {
-                    int color = tube.Cells[layer];
-                    string colorStr = hexMode
-                        ? color.ToString("X2")
-                        : color.ToString().PadLeft(2);
-
-                    var hasSpecial = false;
-                    var chain = Obstacles.GetByCell(i, layer);
-                    if (chain.Any(obs => obs.Enabled))
-                    {
-                        string flag = "?";
-                        cells.Add(flag.PadLeft(2));
-                        hasSpecial = true;
-                    }
-                    else
-                    {
-                        var curtain = Obstacles.GetByTube(i, ObstacleKind.Curtain);
-                        if (curtain.Count > 0 && curtain[0].Enabled)
-                        {
-                            cells.Add(AnsiColor.Colorize(curtain[0].Color.Value,"#".PadLeft(2)));
-                            hasSpecial = true;
-                        }
-                    }
-                    
-                    if (!hasSpecial)
-                    {
-                        cells.Add(AnsiColor.Colorize(color, colorStr));
-                    }
-                    // cells.Add(colorStr);
-                }
-                else
-                {
-                    if (isCapacityLine)
-                        cells.Add(" -");
-                    else
-                        cells.Add("  ");
-                }
+                cells.Add(RenderCell(i, layer, hexMode));
             }
 
             lines.Add(string.Join(" ", cells));
         }
 
-        
+        // ─────────────────────────────
+        // Footer
+        // ─────────────────────────────
         if (showIndex)
+            RenderIndex(lines);
+
+        return string.Join(Environment.NewLine, lines);
+        
+        string RenderCell(int tubeIndex, int layer, bool hexMode)
+        {
+            var tube = Tubes[tubeIndex];
+
+            bool isCapacityLine = layer == tube.Capacity - 1;
+            bool hasColor = layer < tube.Cells.Length;
+
+            if (hasColor)
+            {
+                int color = tube.Cells[layer];
+                string colorStr = hexMode
+                    ? color.ToString("X2")
+                    : color.ToString().PadLeft(2);
+
+                var chain = Obstacles.GetByCell(tubeIndex, layer);
+                if (chain.Any(obs => obs.Enabled))
+                {
+                    return "?".PadLeft(2);
+                }
+
+                var curtain = Obstacles.GetByTube(tubeIndex, ObstacleKind.Curtain);
+                if (curtain.Count > 0 && curtain[0].Enabled)
+                {
+                    return AnsiColor.Colorize(
+                        curtain[0].Color.Value,
+                        "#".PadLeft(2)
+                    );
+                }
+
+                return AnsiColor.Colorize(color, colorStr);
+            }
+            else
+            {
+                return isCapacityLine ? " -" : "  ";
+            }
+        }
+        
+        void RenderIndex(List<string> lines)
         {
             int width = 3 * Tubes.Count - 1;
             lines.Add(new string('-', width));
+
             lines.Add(string.Join(" ",
                 Enumerable.Range(0, Tubes.Count)
                     .Select(i =>
                     {
-                        if (HasClamp(this, i))
-                        {
+                        if (HasClamp(i))
                             return AnsiColor.Colorize(10, i.ToString()).PadLeft(2);
-                        }
+
                         return i.ToString().PadLeft(2);
                     })));
         }
 
-        return string.Join(Environment.NewLine, lines);
-
-        static bool HasClamp(State state, int tubeIndex)
+        bool HasClamp(int tubeIndex)
         {
-            var clamps = state.Obstacles.GetByTube(tubeIndex, ObstacleKind.Clamp);
+            var clamps = Obstacles.GetByTube(tubeIndex, ObstacleKind.Clamp);
             return clamps.Count > 0 && clamps[0].Enabled;
         }
+
     }
 
-    public override string ToString()
-    {
-        return Render(true);
-    }
 }

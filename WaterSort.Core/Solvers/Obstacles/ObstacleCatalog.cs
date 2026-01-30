@@ -68,6 +68,12 @@ public sealed class ObstacleCatalog
         return chain;
     }
     
+    /// <summary>
+    /// 获取某个 tube 需要更新当前“有效链”（EffectiveChain）：
+    /// - 跳过 Enabled=false 的障碍
+    /// - 按 Priority 降序
+    /// - 遇到 MaskLower 则截断（遮蔽低优先级障碍）
+    /// </summary>
     public IReadOnlyList<ObstacleEntry> GetRequireAfterApplyChain(int tubeIndex, ObstacleKind? targetKind = null)
     {
         var all = GetByTube(tubeIndex);

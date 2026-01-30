@@ -57,20 +57,60 @@ public interface IObstacleHandler
     void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability);
 }
 
-public sealed class MysteryHandler : IObstacleHandler
+public abstract class ObstacleHandler : IObstacleHandler
 {
-    public ObstacleKind Kind => ObstacleKind.Mystery;
+    public virtual ObstacleKind Kind { get; }
 
-    public void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
+    /// <summary>
+    /// 对 tube ability 进行适配（类似 middleware）。
+    /// 只处理“本 tube 的 entry”。
+    /// </summary>
+    public virtual void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
     {
-        // 0) 快速过滤
-        if (!entry.Enabled)
-            return;
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// 验证类型和瓶子下标是否匹配
+    /// </summary>
+    /// <param name="state"></param>
+    /// <param name="entry"></param>
+    /// <param name="ability"></param>
+    /// <returns></returns>
+    public bool IsMatch(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
+    {
+        if (!entry.Enabled || entry.Kind != Kind)
+            return false;
 
         if (ability.TubeIndex < 0 || ability.TubeIndex >= state.Tubes.Count)
-            return;
+            return false;
 
         if (entry.TubeTargets.Count > 0 && !entry.TubeTargets.Contains(ability.TubeIndex))
+            return false;
+
+        return true;
+    }
+}
+
+/// <summary>
+/// 问号道具 移动能力
+/// </summary>
+public sealed class MysteryHandler : ObstacleHandler
+{
+    public override ObstacleKind Kind => ObstacleKind.Mystery;
+
+    public override void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
+    {
+        // 0) 快速过滤
+        // if (!entry.Enabled || entry.Kind != Kind)
+        //     return;
+        //
+        // if (ability.TubeIndex < 0 || ability.TubeIndex >= state.Tubes.Count)
+        //     return;
+        //
+        // if (entry.TubeTargets.Count > 0 && !entry.TubeTargets.Contains(ability.TubeIndex))
+        //     return;
+        if (!IsMatch(state, entry, ref ability))
             return;
 
         if (ability.ExportCount <= 0)
@@ -113,20 +153,25 @@ public sealed class MysteryHandler : IObstacleHandler
     }
 }
 
-public sealed class CurtainHandler : IObstacleHandler
+/// <summary>
+/// 窗帘，纸盒 移动能力
+/// </summary>
+public sealed class CurtainHandler : ObstacleHandler
 {
-    public ObstacleKind Kind => ObstacleKind.Curtain;
+    public override ObstacleKind Kind => ObstacleKind.Curtain;
 
-    public void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
+    public override void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
     {
         // 0) 快速过滤
-        if (!entry.Enabled)
-            return;
-
-        if (ability.TubeIndex < 0 || ability.TubeIndex >= state.Tubes.Count)
-            return;
-
-        if (entry.TubeTargets.Count > 0 && !entry.TubeTargets.Contains(ability.TubeIndex))
+        // if (!entry.Enabled)
+        //     return;
+        //
+        // if (ability.TubeIndex < 0 || ability.TubeIndex >= state.Tubes.Count)
+        //     return;
+        //
+        // if (entry.TubeTargets.Count > 0 && !entry.TubeTargets.Contains(ability.TubeIndex))
+        //     return;
+        if (!IsMatch(state, entry, ref ability))
             return;
 
         // Curtain = 禁止该 tube 的任何交互
@@ -135,23 +180,111 @@ public sealed class CurtainHandler : IObstacleHandler
     }
 }
 
-public sealed class ClampHandler : IObstacleHandler
+/// <summary>
+/// 固定瓶，机械臂 移动能力
+/// </summary>
+public sealed class ClampHandler : ObstacleHandler
 {
-    public ObstacleKind Kind => ObstacleKind.Clamp;
+    public override ObstacleKind Kind => ObstacleKind.Clamp;
 
-    public void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
+    public override void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
     {
         // 0) 快速过滤
-        if (!entry.Enabled)
-            return;
-
-        if (ability.TubeIndex < 0 || ability.TubeIndex >= state.Tubes.Count)
-            return;
-
-        if (entry.TubeTargets.Count > 0 && !entry.TubeTargets.Contains(ability.TubeIndex))
+        // if (!entry.Enabled)
+        //     return;
+        //
+        // if (ability.TubeIndex < 0 || ability.TubeIndex >= state.Tubes.Count)
+        //     return;
+        //
+        // if (entry.TubeTargets.Count > 0 && !entry.TubeTargets.Contains(ability.TubeIndex))
+        //     return;
+        if (!IsMatch(state, entry, ref ability))
             return;
 
         // Clamp = 禁止该 tube 倒出
+        ability.ExportCount = 0;
+    }
+}
+
+
+/// <summary>
+/// 石膏，旁消 移动能力
+/// </summary>
+public sealed class PlasterHandler : ObstacleHandler
+{
+    public override ObstacleKind Kind => ObstacleKind.Plaster;
+
+    public override void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
+    {
+        // if (!entry.Enabled)
+        //     return;
+        //
+        // if (ability.TubeIndex < 0 || ability.TubeIndex >= state.Tubes.Count)
+        //     return;
+        //
+        // if (entry.TubeTargets.Count > 0 && !entry.TubeTargets.Contains(ability.TubeIndex))
+        //     return;
+        if (!IsMatch(state, entry, ref ability))    
+            return;
+        
+        // Plaster = 禁止该 tube 的任何交互
+        ability.ExportCount = 0;
+        ability.AcceptCount = 0;
+    }
+}
+
+
+
+/// <summary>
+/// 固定颜色 移动能力
+/// </summary>
+public sealed class ColorLockHandler : ObstacleHandler
+{
+    public override ObstacleKind Kind => ObstacleKind.ColorLock;
+    
+    public override void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
+    {
+        // if (!entry.Enabled)
+        //     return;
+        //
+        // if (ability.TubeIndex < 0 || ability.TubeIndex >= state.Tubes.Count)
+        //     return;
+        //
+        // if (entry.TubeTargets.Count > 0 && !entry.TubeTargets.Contains(ability.TubeIndex))
+        //     return;
+        if (!IsMatch(state, entry, ref ability))
+            return;
+
+        if (!entry.Color.HasValue)
+        {
+            throw new ArgumentException(
+                $"Obstacle {entry.Kind} requires Color, but entry.Color is null. EntryId={entry.Id}"
+            );
+        }
+        
+        ability.AcceptColor = entry.Color.Value;
+        if (state.Tubes[ability.TubeIndex].TopColor != entry.Color.Value)
+        {
+            ability.AcceptCount = 0;
+        }
+    }
+}
+
+
+
+/// <summary>
+/// 柜子 移动能力
+/// </summary>
+public sealed class CupboardHandler : ObstacleHandler
+{
+    public override ObstacleKind Kind => ObstacleKind.Cupboard;
+    
+    public override void Adapt(State state, ObstacleEntry entry, ref TubeMoveAbility ability)
+    {   
+        if (!IsMatch(state, entry, ref ability))
+            return;
+        
+        ability.AcceptCount = 0;
         ability.ExportCount = 0;
     }
 }
@@ -177,6 +310,9 @@ public sealed class ObstacleRegistry
         registry.Register(new MysteryHandler());
         registry.Register(new CurtainHandler());
         registry.Register(new ClampHandler());
+        // registry.Register(new PlasterHandler());
+        registry.Register(new ColorLockHandler());
+        // registry.Register(new CupboardHandler());
         return registry;
     }
 }

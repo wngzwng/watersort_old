@@ -227,17 +227,21 @@ public sealed class ObstacleUpdater
     {
         var changed = false;
 
-        foreach (var e in state.ObstacleEntries)
+        for(var i = 0; i < state.Tubes.Count; i++)
         {
-            if (!e.Enabled) continue;
-            if (e.Kind != ObstacleKind.Cupboard) continue;
-            if (e.Color is null) continue;
-
-            if (!obtainedKeyColors.Contains(e.Color.Value))
-                continue;
-
-            e.Enabled = false;
-            changed = true;
+            var entries = state.Obstacles.GetRequireAfterApplyChain(i, ObstacleKind.Cupboard);
+            foreach (var entry in entries)
+            {
+                if (!entry.Enabled) continue;
+                if (entry.Kind != ObstacleKind.Cupboard) continue;
+                if (entry.Color is null) continue;
+                
+                if (!obtainedKeyColors.Contains(entry.Color.Value))
+                    continue;
+                
+                entry.Enabled = false;
+                changed = true;
+            }
         }
 
         return changed;
@@ -278,19 +282,37 @@ public sealed class ObstacleUpdater
     /// </summary>
     private static bool BreakSidePlastersByCompletedTubes(State state, HashSet<int> completedTubes)
     {
+        if (completedTubes == null || completedTubes.Count == 0)
+            return false;
+        
         var changed = false;
+        foreach (var completedTube in completedTubes)
+        {
+            // 通过 topology / layout 获取tube
+            foreach (var neighbor in state.TubeTopology.GetNeighbors(completedTube))
+            {
+                var entries = state.Obstacles.GetRequireAfterApplyChain(neighbor, ObstacleKind.Plaster);
+                if (entries == null || entries.Count == 0)
+                    continue;
 
-        return false;
+                foreach (var entry in entries)
+                {
+                    if (!entry.Enabled)
+                        continue;
+                    
+                    if (entry.Kind != ObstacleKind.Plaster)
+                        continue;
+                    
+                    // 核心语义：直接移除
+                    entry.Enabled = false;
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
     }
-
-    private static IEnumerable<int> GetSideNeighbors(State state, int tubeIndex)
-    {
-        // 最简单：线性左右邻居（你如果有坐标系统，在这里换成 grid 邻接）
-        // state.TubeLayouts;
-        if (tubeIndex - 1 >= 0) yield return tubeIndex - 1;
-        if (tubeIndex + 1 < state.Tubes.Count) yield return tubeIndex + 1;
-    }
-
+    
     // ─────────────────────────────
     // 门控逻辑
     // ─────────────────────────────
